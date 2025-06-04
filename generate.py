@@ -244,7 +244,28 @@ def _parse_args():
         default=5.0,
         help="Classifier free guidance scale.")
 
+    parser.add_argument(
+        "--prompts",
+        type=str,
+        nargs='*',
+        default=[],
+        help="The prompts to generate the image or video from. If not specified, will use the default prompt for the task."
+    )
+    parser.add_argument(
+        "--seeds",
+        type=int,
+        nargs='*',
+        default=[42],
+        help="The seeds to use for generating the image or video. If not specified, will use a random seed."
+    )
+
+
     args = parser.parse_args()
+
+    if args.prompt is not None:
+        args.prompts = [args.prompt]
+    if args.base_seed > 0:
+        args.seeds = [args.base_seed]
 
     _validate_args(args)
 
@@ -560,7 +581,8 @@ def generate(args):
             formatted_prompt = args.prompt.replace(" ", "_").replace("/",
                                                                      "_")[:50]
             suffix = '.png' if "t2i" in args.task else '.mp4'
-            args.save_file = f"{args.task}_{args.size.replace('*','x') if sys.platform=='win32' else args.size}_{args.ulysses_size}_{args.ring_size}_{formatted_prompt}_{formatted_time}" + suffix
+            dir_name = 'generated'
+            args.save_file = f"{dir_name}/{args.task}_{args.size.replace('*','x') if sys.platform=='win32' else args.size}_{args.ulysses_size}_{args.ring_size}_{formatted_prompt}_{formatted_time}" + suffix
 
         if "t2i" in args.task:
             logging.info(f"Saving generated image to {args.save_file}")
@@ -584,4 +606,9 @@ def generate(args):
 
 if __name__ == "__main__":
     args = _parse_args()
-    generate(args)
+    for prompt in args.prompts:
+        for seed in args.seeds:
+            args.prompt = prompt
+            args.base_seed = seed
+            logging.info(f"Generating with seed {args.base_seed} ...")
+            generate(args)
