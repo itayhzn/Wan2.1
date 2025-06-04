@@ -391,7 +391,18 @@ def generate(args):
 
         logging.info(
             f"Generating {'image' if 't2i' in args.task else 'video'} ...")
-        video = wan_t2v.generate(
+        # video = wan_t2v.generate(
+        #     args.prompt,
+        #     size=SIZE_CONFIGS[args.size],
+        #     frame_num=args.frame_num,
+        #     shift=args.sample_shift,
+        #     sample_solver=args.sample_solver,
+        #     sampling_steps=args.sample_steps,
+        #     guide_scale=args.sample_guide_scale,
+        #     seed=args.base_seed,
+        #     offload_model=args.offload_model)
+
+        video, paired_video = wan_t2v.generate(
             args.prompt,
             size=SIZE_CONFIGS[args.size],
             frame_num=args.frame_num,
@@ -400,7 +411,8 @@ def generate(args):
             sampling_steps=args.sample_steps,
             guide_scale=args.sample_guide_scale,
             seed=args.base_seed,
-            offload_model=args.offload_model)
+            offload_model=args.offload_model,
+            paired_generation=True)
 
     elif "i2v" in args.task:
         if args.prompt is None:
@@ -601,6 +613,18 @@ def generate(args):
                 nrow=1,
                 normalize=True,
                 value_range=(-1, 1))
+            
+            if paired_video is not None:
+                paired_save_file = args.save_file.replace(
+                    '.mp4', '_paired.mp4')
+                logging.info(f"Saving paired video to {paired_save_file}")
+                cache_video(
+                    tensor=paired_video[None],
+                    save_file=paired_save_file,
+                    fps=cfg.sample_fps,
+                    nrow=1,
+                    normalize=True,
+                    value_range=(-1, 1))
     logging.info("Finished.")
 
 
