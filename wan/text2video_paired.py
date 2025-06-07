@@ -15,7 +15,7 @@ import torch.distributed as dist
 from tqdm import tqdm
 
 from .distributed.fsdp import shard_model
-from .modules.model import WanModel
+from .modules.pair_model import WanModel_Paired
 from .modules.t5 import T5EncoderModel
 from .modules.vae import WanVAE
 from .utils.fm_solvers import (
@@ -26,7 +26,7 @@ from .utils.fm_solvers import (
 from .utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 
 
-class WanT2V:
+class WanT2V_Paired:
 
     def __init__(
         self,
@@ -84,7 +84,7 @@ class WanT2V:
             device=self.device)
 
         logging.info(f"Creating WanModel from {checkpoint_dir}")
-        self.model = WanModel.from_pretrained(checkpoint_dir)
+        self.model = WanModel_Paired.from_pretrained(checkpoint_dir)
         self.model.eval().requires_grad_(False)
 
         if use_usp:
@@ -121,8 +121,7 @@ class WanT2V:
                  guide_scale=5.0,
                  n_prompt="",
                  seed=-1,
-                 offload_model=True,
-                 paired_generation=False):
+                 offload_model=True):
         r"""
         Generates video frames from text prompt using diffusion process.
 
@@ -156,7 +155,6 @@ class WanT2V:
                 - H: Frame height (from size)
                 - W: Frame width from size)
         """
-          
         # preprocess
         F = frame_num
         target_shape = (self.vae.model.z_dim, (F - 1) // self.vae_stride[0] + 1,
@@ -185,7 +183,7 @@ class WanT2V:
             context = [t.to(self.device) for t in context]
             context_null = [t.to(self.device) for t in context_null]
 
-        noise = [
+        noise1 = [
             torch.randn(
                 target_shape[0],
                 target_shape[1],
@@ -194,6 +192,10 @@ class WanT2V:
                 dtype=torch.float32,
                 device=self.device,
                 generator=seed_g)
+        ]
+
+        noise2 = [
+            noise1[0].clone().detach()
         ]
 
         @contextmanager
@@ -213,6 +215,15 @@ class WanT2V:
                 sample_scheduler.set_timesteps(
                     sampling_steps, device=self.device, shift=shift)
                 timesteps = sample_scheduler.timesteps
+                
+                paired_sample_scheduler = FlowUniPCMultistepScheduler(
+                    num_train_timesteps=self.num_train_timesteps,
+                    shift=1,
+                    use_dynamic_shifting=False)
+                paired_sample_scheduler.set_timesteps(
+                    sampling_steps, device=self.device, shift=shift)
+                paired_timesteps = paired_sample_scheduler.timesteps
+
             elif sample_solver == 'dpm++':
                 sample_scheduler = FlowDPMSolverMultistepScheduler(
                     num_train_timesteps=self.num_train_timesteps,
@@ -227,43 +238,63 @@ class WanT2V:
                 raise NotImplementedError("Unsupported solver.")
 
             # sample videos
-            latents = noise
-            
-            arg_c = {'context': context, 'seq_len': seq_len}
-            arg_null = {'context': context_null, 'seq_len': seq_len}
+            latents1 = noise1
+            latents2 = noise2
+
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len}
 
             for idx, t in enumerate(tqdm(timesteps)):
-                latent_model_input = latents
                 timestep = [t]
 
                 timestep = torch.stack(timestep)
 
                 self.model.to(self.device)
-                noise_pred_cond = self.model(
-                    latent_model_input, t=timestep, **arg_c)[0]
-                noise_pred_uncond = self.model(
-                    latent_model_input, t=timestep, **arg_null)[0]
+                noise_pred_cond1, noise_pred_cond2 = self.model(
+                    latents1, latents2, t=timestep, **arg_c)
+                noise_pred_cond1, noise_pred_cond2 = noise_pred_cond1[0], noise_pred_cond2[0]
 
-                noise_pred = noise_pred_uncond + guide_scale * (
-                    noise_pred_cond - noise_pred_uncond)
+                noise_pred_uncond1, noise_pred_uncond2 = self.model(
+                    latents1, latents2, t=timestep, **arg_null)
+                noise_pred_uncond1, noise_pred_uncond2 = noise_pred_uncond1[0], noise_pred_uncond2[0]
 
-                temp_x0 = sample_scheduler.step(
-                    noise_pred.unsqueeze(0),
+                noise_pred1 = noise_pred_uncond1 + guide_scale * (
+                    noise_pred_cond1 - noise_pred_uncond1)
+                noise_pred2 = noise_pred_uncond2 + guide_scale * (
+                    noise_pred_cond2 - noise_pred_uncond2)
+
+                temp_x0_1 = sample_scheduler.step(
+                    noise_pred1.unsqueeze(0),
                     t,
-                    latents[0].unsqueeze(0),
+                    latents1[0].unsqueeze(0),
                     return_dict=False,
                     generator=seed_g)[0]
-                latents = [temp_x0.squeeze(0)]
                 
-            x0 = latents
+                temp_x0_2 = paired_sample_scheduler.step(
+                    noise_pred2.unsqueeze(0),
+                    t,
+                    latents2[0].unsqueeze(0),
+                    return_dict=False,
+                    generator=seed_g)[0]
+                
+                latents1 = [temp_x0_1.squeeze(0)]
+                latents2 = [temp_x0_2.squeeze(0)]
+                
+
+                if idx == 0:
+                    latents2 = [torch.pow(latents2[0], 3)]
+                
+            x0_1 = latents1
+            x0_2 = latents2
 
             if offload_model:
                 self.model.cpu()
                 torch.cuda.empty_cache()
             if self.rank == 0:
-                videos = self.vae.decode(x0)
-                
-        del noise, latents
+                videos1 = self.vae.decode(x0_1)
+                videos2 = self.vae.decode(x0_2)
+
+        del noise1, noise2, latents1, latents2
         del sample_scheduler
         if offload_model:
             gc.collect()
@@ -271,5 +302,4 @@ class WanT2V:
         if dist.is_initialized():
             dist.barrier()
 
-        return videos[0] if self.rank == 0 else None
-       
+        return videos1[0] if self.rank == 0 else None, videos2[0] if self.rank == 0 else None

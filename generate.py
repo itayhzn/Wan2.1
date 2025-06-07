@@ -258,6 +258,12 @@ def _parse_args():
         default=[42],
         help="The seeds to use for generating the image or video. If not specified, will use a random seed."
     )
+    parser.add_argument(
+        "--paired_generation",
+        type=bool,
+        default=False,
+        help="Whether to generate paired video for T2V task. If set to True, the output will be a tuple of (video, paired_video)."
+    )
 
 
     args = parser.parse_args()
@@ -377,42 +383,58 @@ def generate(args):
             args.prompt = input_prompt[0]
             logging.info(f"Extended prompt: {args.prompt}")
 
-        logging.info("Creating WanT2V pipeline.")
-        wan_t2v = wan.WanT2V(
-            config=cfg,
-            checkpoint_dir=args.ckpt_dir,
-            device_id=device,
-            rank=rank,
-            t5_fsdp=args.t5_fsdp,
-            dit_fsdp=args.dit_fsdp,
-            use_usp=(args.ulysses_size > 1 or args.ring_size > 1),
-            t5_cpu=args.t5_cpu,
-        )
+        if args.paired_generation is None:
+            logging.info("Creating WanT2V pipeline.")
+            wan_t2v = wan.WanT2V(
+                config=cfg,
+                checkpoint_dir=args.ckpt_dir,
+                device_id=device,
+                rank=rank,
+                t5_fsdp=args.t5_fsdp,
+                dit_fsdp=args.dit_fsdp,
+                use_usp=(args.ulysses_size > 1 or args.ring_size > 1),
+                t5_cpu=args.t5_cpu,
+            )
 
-        logging.info(
-            f"Generating {'image' if 't2i' in args.task else 'video'} ...")
-        # video = wan_t2v.generate(
-        #     args.prompt,
-        #     size=SIZE_CONFIGS[args.size],
-        #     frame_num=args.frame_num,
-        #     shift=args.sample_shift,
-        #     sample_solver=args.sample_solver,
-        #     sampling_steps=args.sample_steps,
-        #     guide_scale=args.sample_guide_scale,
-        #     seed=args.base_seed,
-        #     offload_model=args.offload_model)
+            logging.info(
+                f"Generating {'image' if 't2i' in args.task else 'video'} ...")
+            
+            video = wan_t2v.generate(
+                args.prompt,
+                size=SIZE_CONFIGS[args.size],
+                frame_num=args.frame_num,
+                shift=args.sample_shift,
+                sample_solver=args.sample_solver,
+                sampling_steps=args.sample_steps,
+                guide_scale=args.sample_guide_scale,
+                seed=args.base_seed,
+                offload_model=args.offload_model)
+        else:
+            logging.info("Creating WanT2V pipeline.")
+            wan_t2v = wan.WanT2V_Paired(
+                config=cfg,
+                checkpoint_dir=args.ckpt_dir,
+                device_id=device,
+                rank=rank,
+                t5_fsdp=args.t5_fsdp,
+                dit_fsdp=args.dit_fsdp,
+                use_usp=(args.ulysses_size > 1 or args.ring_size > 1),
+                t5_cpu=args.t5_cpu,
+            )
 
-        video, paired_video = wan_t2v.generate(
-            args.prompt,
-            size=SIZE_CONFIGS[args.size],
-            frame_num=args.frame_num,
-            shift=args.sample_shift,
-            sample_solver=args.sample_solver,
-            sampling_steps=args.sample_steps,
-            guide_scale=args.sample_guide_scale,
-            seed=args.base_seed,
-            offload_model=args.offload_model,
-            paired_generation=True)
+            logging.info(
+                f"Generating {'image' if 't2i' in args.task else 'video'} ...")
+            
+            video, paired_video = wan_t2v.generate(
+                args.prompt,
+                size=SIZE_CONFIGS[args.size],
+                frame_num=args.frame_num,
+                shift=args.sample_shift,
+                sample_solver=args.sample_solver,
+                sampling_steps=args.sample_steps,
+                guide_scale=args.sample_guide_scale,
+                seed=args.base_seed,
+                offload_model=args.offload_model)
 
     elif "i2v" in args.task:
         if args.prompt is None:
