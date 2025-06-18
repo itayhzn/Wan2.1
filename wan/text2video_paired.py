@@ -15,7 +15,7 @@ import torch.distributed as dist
 from tqdm import tqdm
 
 from .distributed.fsdp import shard_model
-from .modules.pair_model import WanModel_Paired
+from .modules.pair_model import PairedWanModel
 from .modules.t5 import T5EncoderModel
 from .modules.vae import WanVAE
 from .utils.fm_solvers import (
@@ -25,8 +25,7 @@ from .utils.fm_solvers import (
 )
 from .utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 
-
-class WanT2V_Paired:
+class PairedWanT2V:
 
     def __init__(
         self,
@@ -84,7 +83,7 @@ class WanT2V_Paired:
             device=self.device)
 
         logging.info(f"Creating WanModel from {checkpoint_dir}")
-        self.model = WanModel_Paired.from_pretrained(checkpoint_dir)
+        self.model = PairedWanModel.from_pretrained(checkpoint_dir)
         self.model.eval().requires_grad_(False)
 
         if use_usp:
@@ -121,7 +120,9 @@ class WanT2V_Paired:
                  guide_scale=5.0,
                  n_prompt="",
                  seed=-1,
-                 offload_model=True):
+                 offload_model=True,
+                 addit_prompt="",
+                 encoded_params=None):
         r"""
         Generates video frames from text prompt using diffusion process.
 
@@ -146,14 +147,17 @@ class WanT2V_Paired:
                 Random seed for noise generation. If -1, use random seed.
             offload_model (`bool`, *optional*, defaults to True):
                 If True, offloads models to CPU during generation to save VRAM
+            addit_prompt (`str`, *optional*, defaults to ""):
+                A prompt containing the objects to be added to the video. Will only be added to the second video.
 
         Returns:
-            torch.Tensor:
-                Generated video frames tensor. Dimensions: (C, N H, W) where:
+            video1, video2: each are torch.Tensor representing the generated video frames tensors. 
+            Dimensions: (C, N H, W) where:
                 - C: Color channels (3 for RGB)
                 - N: Number of frames (81)
                 - H: Frame height (from size)
                 - W: Frame width from size)
+            The second video will contain the objects specified in `addit_prompt`.
         """
         # preprocess
         F = frame_num
@@ -175,13 +179,17 @@ class WanT2V_Paired:
             self.text_encoder.model.to(self.device)
             context = self.text_encoder([input_prompt], self.device)
             context_null = self.text_encoder([n_prompt], self.device)
+            addit_context = self.text_encoder([addit_prompt], self.device)
             if offload_model:
                 self.text_encoder.model.cpu()
         else:
             context = self.text_encoder([input_prompt], torch.device('cpu'))
             context_null = self.text_encoder([n_prompt], torch.device('cpu'))
+            addit_context = self.text_encoder([addit_prompt], torch.device('cpu'))
             context = [t.to(self.device) for t in context]
             context_null = [t.to(self.device) for t in context_null]
+            addit_context = [t.to(self.device) for t in addit_context]
+
 
         noise1 = [
             torch.randn(
@@ -241,8 +249,8 @@ class WanT2V_Paired:
             latents1 = noise1
             latents2 = noise2
 
-            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len}
-            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len}
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'addit_context': addit_context}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'addit_context': context_null}
 
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
@@ -250,6 +258,9 @@ class WanT2V_Paired:
                 timestep = torch.stack(timestep)
 
                 self.model.to(self.device)
+
+                arg_c['save_tensors_dir'] = f'/home/ai_center/ai_data/itaytuviah/Wan2.1/tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
+
                 noise_pred_cond1, noise_pred_cond2 = self.model(
                     latents1, latents2, t=timestep, **arg_c)
                 noise_pred_cond1, noise_pred_cond2 = noise_pred_cond1[0], noise_pred_cond2[0]
@@ -279,10 +290,6 @@ class WanT2V_Paired:
                 
                 latents1 = [temp_x0_1.squeeze(0)]
                 latents2 = [temp_x0_2.squeeze(0)]
-                
-
-                if idx == 0:
-                    latents2 = [torch.pow(latents2[0], 3)]
                 
             x0_1 = latents1
             x0_2 = latents2

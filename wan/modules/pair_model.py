@@ -8,14 +8,290 @@ from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.modeling_utils import ModelMixin
 
 from .attention import flash_attention
-from .model import rope_params, sinusoidal_embedding_1d, MLPProj, Head, WanAttentionBlock
+from .model import rope_params, sinusoidal_embedding_1d, MLPProj, Head, WanAttentionBlock, WanLayerNorm, WanSelfAttention, WanT2VCrossAttention, WanRMSNorm, rope_apply
+
+from datetime import datetime
+
+import os
 
 __all__ = ['WanModel']
 
 T5_CONTEXT_TOKEN_NUMBER = 512
 FIRST_LAST_FRAME_CONTEXT_TOKEN_NUMBER = 257 * 2
 
-class WanModel_Paired(ModelMixin, ConfigMixin):
+
+class PairedWanSelfAttention(nn.Module):
+
+    def __init__(self,
+                 dim,
+                 num_heads,
+                 window_size=(-1, -1),
+                 qk_norm=True,
+                 eps=1e-6):
+        assert dim % num_heads == 0
+        super().__init__()
+        self.dim = dim
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.window_size = window_size
+        self.qk_norm = qk_norm
+        self.eps = eps
+
+        # layers
+        self.q = nn.Linear(dim, dim)
+        self.k = nn.Linear(dim, dim)
+        self.v = nn.Linear(dim, dim)
+        self.o = nn.Linear(dim, dim)
+        self.norm_q = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
+        self.norm_k = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
+
+    def forward(self, x1, x2, seq_lens, grid_sizes, freqs):
+        r"""
+        Args:
+            x(Tensor): Shape [B, L, num_heads, C / num_heads]
+            seq_lens(Tensor): Shape [B]
+            grid_sizes(Tensor): Shape [B, 3], the second dimension contains (F, H, W)
+            freqs(Tensor): Rope freqs, shape [1024, C / num_heads / 2]
+        """
+        b, s, n, d = *x1.shape[:2], self.num_heads, self.head_dim
+
+        print(f"grid_sizes: {grid_sizes}, freqs: {freqs.shape}, seq_lens: {seq_lens}")
+
+        # query, key, value function
+        def qkv_fn(x):
+            q = self.norm_q(self.q(x)).view(b, s, n, d)
+            k = self.norm_k(self.k(x)).view(b, s, n, d)
+            v = self.v(x).view(b, s, n, d)
+            return q, k, v
+
+        q1, k1, v1 = qkv_fn(x1)
+        q2, k2, v2 = qkv_fn(x2)
+
+        x1 = flash_attention(
+            q=rope_apply(q1, grid_sizes, freqs),
+            k=rope_apply(k1, grid_sizes, freqs),
+            v=v1,
+            k_lens=seq_lens,
+            window_size=self.window_size)
+        
+        x2 = flash_attention(
+            q=rope_apply(q2, grid_sizes, freqs),
+            k=rope_apply(k2, grid_sizes, freqs),
+            v=v2,
+            k_lens=seq_lens,
+            window_size=self.window_size)
+
+        # output
+        x1 = x1.flatten(2)
+        x1 = self.o(x1)
+
+        x2 = x2.flatten(2)
+        x2 = self.o(x2)
+        return x1, x2
+
+
+class PairedWanT2VCrossAttention(WanSelfAttention):
+
+    def save_tensors(self, save_tensors_dir, q1, q2, k1, k2, k_context1, k_addit, v1, v2, v_context1, v_addit):
+        r"""
+        Save tensors to disk for debugging purposes.
+        """
+        # mkdir if not exists
+        if not os.path.exists(save_tensors_dir):
+            os.makedirs(save_tensors_dir)
+        print(f'======= Saving tensors to {save_tensors_dir}')
+        for name, tensor in zip(['q1', 'q2', 'k1', 'k2', 'k_context1', 'k_addit', 'v1', 'v2', 'v_context1', 'v_addit'],
+                                [q1, q2, k1, k2, k_context1, k_addit, v1, v2, v_context1, v_addit]):
+            print(f'\tSaving tensor {name} to {os.path.join(save_tensors_dir, name)}')
+            torch.save(tensor.clone(), os.path.join(save_tensors_dir, f'{name}.pt'))
+        print(f'======= Saved tensors to {save_tensors_dir}')
+
+    def forward(self, x1, x2, context1, context2, addit_context, context_lens, save_tensors_dir=None):
+        r"""
+        Args:
+            x1, x2(Tensor): Shape [B, L1, C]
+            context1, context2(Tensor): Shape [B, L2, C]
+            addit_context(Tensor): Shape [B, L3, C]
+            context_lens(Tensor): Shape [B]
+        """
+        b, n, d = x1.size(0), self.num_heads, self.head_dim
+
+        # compute query, key, value
+        q1 = self.norm_q(self.q(x1)).view(b, -1, n, d)
+        k1 = self.norm_k(self.k(x1)).view(b, -1, n, d)
+        v1 = self.v(x1).view(b, -1, n, d)
+
+        k_context1 = self.norm_k(self.k(context1)).view(b, -1, n, d)
+        v_context1 = self.v(context1).view(b, -1, n, d)
+
+        q2 = self.norm_q(self.q(x2)).view(b, -1, n, d)
+        k2 = self.norm_k(self.k(x2)).view(b, -1, n, d)
+        v2 = self.v(x2).view(b, -1, n, d)
+        
+        k_addit = self.norm_k(self.k(addit_context)).view(b, -1, n, d)
+        v_addit = self.v(addit_context).view(b, -1, n, d)
+
+        # normalize so that the attention distributed over the source image 
+        # has the same magnitude as the attention distributed over the target image and addit
+
+        def compute_mean_std_on_qk(q, k):
+            # q shape is [B, num_heads, L1, head_dim]
+            # k shape is [B, num_heads, L2, head_dim]
+            with amp.autocast(dtype=torch.float16):
+                qk = q @ k.permute(0, 1, 3, 2) # [B, num_heads, L1, L2]
+                # divide by sqrt(d) to normalize
+                qk = qk / (self.head_dim**0.5)
+                # apply softmax to get attention weights
+                return qk.mean(dim=(2,3), keepdim=True), qk.std(dim=(2,3), keepdim=True) # [B, num_heads, L1, L2]
+        
+        # save q1, q2, k1, k2, k_addit, v1, v2, v_addit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
+        if save_tensors_dir is not None:
+            self.save_tensors(save_tensors_dir, q1, q2, k1, k2, k_context1, k_addit, v1, v2, v_context1, v_addit)
+
+        # def compute_gamma(A_target, A_source):
+        #     """
+        #     Compute the gamma value for the attention weights.
+        #     """
+        #     # Scalar gamma (least-squares)
+        #     with amp.autocast(dtype=torch.float16):
+        #         gamma = ((A_target * A_source).sum() / ((A_target * A_target).sum() + 1e-6)).log()
+        #     return gamma
+        
+        # q1 = q1.permute(0, 2, 1, 3)  # [B, num_heads, L1, head_dim]
+        # q2 = q2.permute(0, 2, 1, 3)  # [B, num_heads, L2, head_dim]
+        # k1 = k1.permute(0, 2, 1, 3)  # [B, num_heads, L1, head_dim]
+        # k_addit = k_addit.permute(0, 2, 1, 3)  # [B, num_heads, L3, head_dim]
+        # k2 = k2.permute(0, 2, 1, 3)  # [B, num_heads, L2, head_dim]
+        # v1 = v1.permute(0, 2, 1, 3)  # [B, num_heads, L1, head_dim]
+        # v_addit = v_addit.permute(0, 2, 1, 3)  # [B, num_heads, L3, head_dim]
+        # v2 = v2.permute(0, 2, 1, 3)  # [B, num_heads, L2, head_dim]
+    
+        # q2k1_mean, q2k1_std = compute_mean_std_on_qk(q2, k1)
+        # q2k2_mean, q2k2_std = compute_mean_std_on_qk(q2, k2)
+        # q2k_addit_mean, q2k_addit_std = compute_mean_std_on_qk(q2, k_addit)
+
+        # k1 = q2k2_std * ((k1 - q2k1_mean) / (q2k1_std + 1e-6)) + q2k2_mean
+        # k_addit = q2k2_std * ((k_addit - q2k_addit_mean) / (q2k_addit_std + 1e-6)) + q2k2_mean
+
+        # q1 = q1.permute(0, 2, 1, 3)  # [B, L1, num_heads, head_dim]
+        # q2 = q2.permute(0, 2, 1, 3)  # [B, L2, num_heads, head_dim]
+        # k1 = k1.permute(0, 2, 1, 3)  # [B, L1, num_heads, head_dim]
+        # k_addit = k_addit.permute(0, 2, 1, 3)  # [B, L3, num_heads, head_dim]
+        # k2 = k2.permute(0, 2, 1, 3)  # [B, L2, num_heads, head_dim]
+        # v1 = v1.permute(0, 2, 1, 3)  # [B, L1, num_heads, head_dim]
+        # v_addit = v_addit.permute(0, 2, 1, 3)  # [B, L3, num_heads, head_dim]
+        # v2 = v2.permute(0, 2, 1, 3)  # [B, L2, num_heads, head_dim]
+
+        # concatenate ks and vs
+        k2 = torch.cat([k2, k1, k_addit], dim=1)
+        v2 = torch.cat([v2, v1, v_addit], dim=1)
+
+        # compute attention
+        x1 = flash_attention(q1, k_context1, v_context1, k_lens=context_lens)
+        x2 = flash_attention(q2, k2, v2, k_lens=context_lens)
+
+        # output
+        x1 = x1.flatten(2)
+        x1 = self.o(x1)
+
+        x2 = x2.flatten(2)
+        x2 = self.o(x2)
+
+        return x1, x2
+
+class PairedWanAttentionBlock(nn.Module):
+
+    def __init__(self,
+                 cross_attn_type,
+                 dim,
+                 ffn_dim,
+                 num_heads,
+                 window_size=(-1, -1),
+                 qk_norm=True,
+                 cross_attn_norm=False,
+                 eps=1e-6):
+        super().__init__()
+        self.dim = dim
+        self.ffn_dim = ffn_dim
+        self.num_heads = num_heads
+        self.window_size = window_size
+        self.qk_norm = qk_norm
+        self.cross_attn_norm = cross_attn_norm
+        self.eps = eps
+
+        # layers
+        self.norm1 = WanLayerNorm(dim, eps)
+        self.self_attn = PairedWanSelfAttention(dim, num_heads, window_size, qk_norm,
+                                          eps)
+        self.norm3 = WanLayerNorm(
+            dim, eps,
+            elementwise_affine=True) if cross_attn_norm else nn.Identity()
+        self.cross_attn = PairedWanT2VCrossAttention(dim,
+                                                    num_heads,
+                                                    (-1, -1),
+                                                    qk_norm,
+                                                    eps)
+        self.norm2 = WanLayerNorm(dim, eps)
+        self.ffn = nn.Sequential(
+            nn.Linear(dim, ffn_dim), nn.GELU(approximate='tanh'),
+            nn.Linear(ffn_dim, dim))
+
+        # modulation
+        self.modulation = nn.Parameter(torch.randn(1, 6, dim) / dim**0.5)
+
+    def forward(
+        self,
+        x1,
+        x2,
+        e,
+        seq_lens,
+        grid_sizes,
+        freqs,
+        context1,
+        context2,
+        addit_context,
+        context_lens,
+        save_tensors_dir=None
+    ):
+        r"""
+        Args:
+            x(Tensor): Shape [B, L, C]
+            e(Tensor): Shape [B, 6, C]
+            seq_lens(Tensor): Shape [B], length of each sequence in batch
+            grid_sizes(Tensor): Shape [B, 3], the second dimension contains (F, H, W)
+            freqs(Tensor): Rope freqs, shape [1024, C / num_heads / 2]
+        """
+        assert e.dtype == torch.float32
+        with amp.autocast(dtype=torch.float32):
+            e = (self.modulation + e).chunk(6, dim=1)
+        assert e[0].dtype == torch.float32
+
+        # self-attention
+        y1, y2 = self.self_attn(
+            self.norm1(x1).float() * (1 + e[1]) + e[0],
+            self.norm1(x2).float() * (1 + e[1]) + e[0], 
+            seq_lens, grid_sizes,
+            freqs)
+        with amp.autocast(dtype=torch.float32):
+            x1 = x1 + y1 * e[2]
+            x2 = x2 + y2 * e[2]
+
+        # cross-attention & ffn function
+        def cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir):
+            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), context1, context2, addit_context, context_lens, save_tensors_dir)
+            x1 = x1 + _x1
+            x2 = x2 + _x2
+            y1 = self.ffn(self.norm2(x1).float() * (1 + e[4]) + e[3])
+            y2 = self.ffn(self.norm2(x2).float() * (1 + e[4]) + e[3])
+            with amp.autocast(dtype=torch.float32):
+                x1 = x1 + y1 * e[5]
+                x2 = x2 + y2 * e[5]
+            return x1, x2
+
+        x1, x2 = cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir)
+        return x1, x2
+
+class PairedWanModel(ModelMixin, ConfigMixin):
     r"""
     Wan diffusion backbone supporting both text-to-video and image-to-video.
     """
@@ -114,7 +390,7 @@ class WanModel_Paired(ModelMixin, ConfigMixin):
 
         # swap one attention block at position my_attn_pos to MyAttentionBlock 
         self.blocks = nn.ModuleList([
-            WanAttentionBlock(cross_attn_type, dim, ffn_dim, num_heads,
+            PairedWanAttentionBlock(cross_attn_type, dim, ffn_dim, num_heads,
                               window_size, qk_norm, cross_attn_norm, eps)
             for _ in range(num_layers)
         ])
@@ -145,31 +421,35 @@ class WanModel_Paired(ModelMixin, ConfigMixin):
         context1, context2,
         seq_len,
         clip_fea=None,
-        y1=None, y2=None
+        y1=None, y2=None,
+        addit_context=None,
+        save_tensors_dir=None
     ):
         r"""
         Forward pass through the diffusion model
 
         Args:
-            x (List[Tensor]):
+            x1, x2 (List[Tensor]):
                 List of input video tensors, each with shape [C_in, F, H, W]
             t (Tensor):
                 Diffusion timesteps tensor of shape [B]
-            context (List[Tensor]):
+            context1, context2 (List[Tensor]):
                 List of text embeddings each with shape [L, C]
             seq_len (`int`):
                 Maximum sequence length for positional encoding
             clip_fea (Tensor, *optional*):
                 CLIP image features for image-to-video mode or first-last-frame-to-video mode
-            y (List[Tensor], *optional*):
+            y1, y2 (List[Tensor], *optional*):
                 Conditional video inputs for image-to-video mode, same shape as x
+            addit_context (Tensor, *optional*):
+                List of additional context embeddings, shape [L_addit, C]
 
         Returns:
             List[Tensor]:
                 List of denoised video tensors with original input shapes [C_out, F, H / 8, W / 8]
         """
         if self.model_type == 'i2v' or self.model_type == 'flf2v':
-            assert clip_fea is not None and y is not None
+            assert clip_fea is not None and y1 is not None
         # params
         device = self.patch_embedding.weight.device
         if self.freqs.device != device:
@@ -185,18 +465,15 @@ class WanModel_Paired(ModelMixin, ConfigMixin):
         x1 = [self.patch_embedding(u.unsqueeze(0)) for u in x1]
         x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]
 
-        grid_sizes1 = torch.stack(
+        grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x1])
-        grid_sizes2 = torch.stack(
-            [torch.tensor(u.shape[2:], dtype=torch.long) for u in x2])
         
         x1 = [u.flatten(2).transpose(1, 2) for u in x1]
         x2 = [u.flatten(2).transpose(1, 2) for u in x2]
 
-        seq_lens1 = torch.tensor([u.size(1) for u in x1], dtype=torch.long)
-        seq_lens2 = torch.tensor([u.size(1) for u in x2], dtype=torch.long)
-
-        assert seq_lens1.max() <= seq_len and seq_lens2.max() <= seq_len
+        seq_lens = torch.tensor([u.size(1) for u in x1], dtype=torch.long)
+    
+        assert seq_lens.max() <= seq_len 
         
         x1 = torch.cat([
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
@@ -228,6 +505,13 @@ class WanModel_Paired(ModelMixin, ConfigMixin):
                     [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
                 for u in context2
             ]))
+        if addit_context is not None:
+            addit_context = self.text_embedding(
+                torch.stack([
+                    torch.cat(
+                        [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
+                    for u in addit_context
+                ]))
 
         if clip_fea is not None:
             context_clip = self.img_emb(clip_fea)  # bs x 257 (x2) x dim
@@ -235,34 +519,31 @@ class WanModel_Paired(ModelMixin, ConfigMixin):
             context2 = torch.concat([context_clip, context2], dim=1)
 
         # arguments
-        kwargs1 = dict(
+        kwargs = dict(
             e=e0,
-            seq_lens=seq_lens1,
-            grid_sizes=grid_sizes1,
+            seq_lens=seq_lens,
+            grid_sizes=grid_sizes,
             freqs=self.freqs,
-            context=context1,
-            context_lens=context_lens)
+            context1=context1,
+            context2=context2,
+            addit_context=addit_context,
+            context_lens=context_lens,
+            save_tensors_dir=None)
 
-        # arguments
-        kwargs2 = dict(
-            e=e0,
-            seq_lens=seq_lens2,
-            grid_sizes=grid_sizes2,
-            freqs=self.freqs,
-            context=context2,
-            context_lens=context_lens)
-
-        for block in self.blocks:
-            x1 = block(x1, **kwargs1)
-            x2 = block(x2, **kwargs2)
+        for i, block in enumerate(self.blocks):
+            if i == len(self.blocks) - 1:
+                print('=== last block ===')
+                kwargs['save_tensors_dir'] = save_tensors_dir
+            print(i, kwargs['save_tensors_dir'])
+            x1, x2 = block(x1, x2, **kwargs)
 
         # head
         x1 = self.head(x1, e)
         x2 = self.head(x2, e)
 
         # unpatchify
-        x1 = self.unpatchify(x1, grid_sizes1)
-        x2 = self.unpatchify(x2, grid_sizes2)
+        x1 = self.unpatchify(x1, grid_sizes)
+        x2 = self.unpatchify(x2, grid_sizes)
         return [u.float() for u in x1], [u.float() for u in x2]
 
     def unpatchify(self, x, grid_sizes):

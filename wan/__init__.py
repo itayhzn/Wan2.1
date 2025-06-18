@@ -3,4 +3,4 @@ from .first_last_frame2video import WanFLF2V
 from .image2video import WanI2V
 from .text2video import WanT2V
 from .vace import WanVace, WanVaceMP
-from .text2video_paired import WanT2V_Paired
+from .text2video_paired import PairedWanT2V

@@ -19,6 +19,7 @@ from wan.configs import MAX_AREA_CONFIGS, SIZE_CONFIGS, SUPPORTED_SIZES, WAN_CON
 from wan.utils.prompt_extend import DashScopePromptExpander, QwenPromptExpander
 from wan.utils.utils import cache_image, cache_video, str2bool
 
+from utils import encode_params
 
 EXAMPLE_PROMPT = {
     "t2v-1.3B": {
@@ -264,6 +265,18 @@ def _parse_args():
         default=False,
         help="Whether to generate paired video for T2V task. If set to True, the output will be a tuple of (video, paired_video)."
     )
+    parser.add_argument(
+        "--addit_prompt",
+        type=str,
+        default="",
+        help="The addit prompt. Must be used with paired_generation=True."
+    )
+    parser.add_argument(
+        "--experiment_name",
+        type=str,
+        default="noname",
+        help="The name of the experiment"
+    )
 
 
     args = parser.parse_args()
@@ -296,6 +309,10 @@ def generate(args):
     local_rank = int(os.getenv("LOCAL_RANK", 0))
     device = local_rank
     _init_logging(rank)
+
+    encoded_params = encode_params(
+        args.prompt, args.task, args.size, args.ulysses_size, args.ring_size,
+        addit_prompt=args.addit_prompt, experiment_name=args.experiment_name)
 
     if args.offload_model is None:
         args.offload_model = False if world_size > 1 else True
@@ -411,7 +428,7 @@ def generate(args):
                 offload_model=args.offload_model)
         else:
             logging.info("Creating WanT2V pipeline.")
-            wan_t2v = wan.WanT2V_Paired(
+            wan_t2v = wan.PairedWanT2V(
                 config=cfg,
                 checkpoint_dir=args.ckpt_dir,
                 device_id=device,
@@ -434,7 +451,9 @@ def generate(args):
                 sampling_steps=args.sample_steps,
                 guide_scale=args.sample_guide_scale,
                 seed=args.base_seed,
-                offload_model=args.offload_model)
+                offload_model=args.offload_model,
+                addit_prompt=args.addit_prompt,
+                encoded_params=encoded_params)
 
     elif "i2v" in args.task:
         if args.prompt is None:
@@ -611,12 +630,10 @@ def generate(args):
 
     if rank == 0:
         if args.save_file is None:
-            formatted_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-            formatted_prompt = args.prompt.replace(" ", "_").replace("/",
-                                                                     "_")[:50]
             suffix = '.png' if "t2i" in args.task else '.mp4'
             dir_name = 'generated'
-            args.save_file = f"{dir_name}/{args.task}_{args.size.replace('*','x') if sys.platform=='win32' else args.size}_{args.ulysses_size}_{args.ring_size}_{formatted_prompt}_{formatted_time}" + suffix
+            
+            args.save_file = f"{dir_name}/{encoded_params}{suffix}"
 
         if "t2i" in args.task:
             logging.info(f"Saving generated image to {args.save_file}")
