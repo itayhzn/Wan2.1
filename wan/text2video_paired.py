@@ -252,15 +252,21 @@ class PairedWanT2V:
             arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'addit_context': addit_context}
             arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'addit_context': context_null}
 
+            addit_timesteps = timesteps[5:]
+
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
+
+                should_addit = t in addit_timesteps
+                arg_c['should_addit'] = should_addit
+                arg_null['should_addit'] = should_addit
 
                 timestep = torch.stack(timestep)
 
                 self.model.to(self.device)
 
-                arg_c['save_tensors_dir'] = f'/home/ai_center/ai_data/itaytuviah/Wan2.1/tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
-
+                # arg_c['save_tensors_dir'] = f'/home/ai_center/ai_data/itaytuviah/Wan2.1/tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
+                
                 noise_pred_cond1, noise_pred_cond2 = self.model(
                     latents1, latents2, t=timestep, **arg_c)
                 noise_pred_cond1, noise_pred_cond2 = noise_pred_cond1[0], noise_pred_cond2[0]

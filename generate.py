@@ -400,7 +400,7 @@ def generate(args):
             args.prompt = input_prompt[0]
             logging.info(f"Extended prompt: {args.prompt}")
 
-        if args.paired_generation is None:
+        if args.paired_generation is False:
             logging.info("Creating WanT2V pipeline.")
             wan_t2v = wan.WanT2V(
                 config=cfg,
@@ -426,6 +426,7 @@ def generate(args):
                 guide_scale=args.sample_guide_scale,
                 seed=args.base_seed,
                 offload_model=args.offload_model)
+            paired_video = None
         else:
             logging.info("Creating WanT2V pipeline.")
             wan_t2v = wan.PairedWanT2V(

@@ -80,7 +80,7 @@ class PairedWanSelfAttention(nn.Module):
             v=v2,
             k_lens=seq_lens,
             window_size=self.window_size)
-
+        
         # output
         x1 = x1.flatten(2)
         x1 = self.o(x1)
@@ -106,7 +106,7 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
             torch.save(tensor.clone(), os.path.join(save_tensors_dir, f'{name}.pt'))
         print(f'======= Saved tensors to {save_tensors_dir}')
 
-    def forward(self, x1, x2, context1, context2, addit_context, context_lens, save_tensors_dir=None):
+    def forward(self, x1, x2, context1, context2, addit_context, context_lens, save_tensors_dir=None, should_addit=False):
         r"""
         Args:
             x1, x2(Tensor): Shape [B, L1, C]
@@ -128,67 +128,30 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         k2 = self.norm_k(self.k(x2)).view(b, -1, n, d)
         v2 = self.v(x2).view(b, -1, n, d)
         
+        q_addit = self.norm_q(self.q(addit_context)).view(b, -1, n, d)
         k_addit = self.norm_k(self.k(addit_context)).view(b, -1, n, d)
         v_addit = self.v(addit_context).view(b, -1, n, d)
 
-        # normalize so that the attention distributed over the source image 
-        # has the same magnitude as the attention distributed over the target image and addit
-
-        def compute_mean_std_on_qk(q, k):
-            # q shape is [B, num_heads, L1, head_dim]
-            # k shape is [B, num_heads, L2, head_dim]
-            with amp.autocast(dtype=torch.float16):
-                qk = q @ k.permute(0, 1, 3, 2) # [B, num_heads, L1, L2]
-                # divide by sqrt(d) to normalize
-                qk = qk / (self.head_dim**0.5)
-                # apply softmax to get attention weights
-                return qk.mean(dim=(2,3), keepdim=True), qk.std(dim=(2,3), keepdim=True) # [B, num_heads, L1, L2]
-        
         # save q1, q2, k1, k2, k_addit, v1, v2, v_addit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
         if save_tensors_dir is not None:
             self.save_tensors(save_tensors_dir, q1, q2, k1, k2, k_context1, k_addit, v1, v2, v_context1, v_addit)
 
-        # def compute_gamma(A_target, A_source):
-        #     """
-        #     Compute the gamma value for the attention weights.
-        #     """
-        #     # Scalar gamma (least-squares)
-        #     with amp.autocast(dtype=torch.float16):
-        #         gamma = ((A_target * A_source).sum() / ((A_target * A_target).sum() + 1e-6)).log()
-        #     return gamma
         
-        # q1 = q1.permute(0, 2, 1, 3)  # [B, num_heads, L1, head_dim]
-        # q2 = q2.permute(0, 2, 1, 3)  # [B, num_heads, L2, head_dim]
-        # k1 = k1.permute(0, 2, 1, 3)  # [B, num_heads, L1, head_dim]
-        # k_addit = k_addit.permute(0, 2, 1, 3)  # [B, num_heads, L3, head_dim]
-        # k2 = k2.permute(0, 2, 1, 3)  # [B, num_heads, L2, head_dim]
-        # v1 = v1.permute(0, 2, 1, 3)  # [B, num_heads, L1, head_dim]
-        # v_addit = v_addit.permute(0, 2, 1, 3)  # [B, num_heads, L3, head_dim]
-        # v2 = v2.permute(0, 2, 1, 3)  # [B, num_heads, L2, head_dim]
-    
-        # q2k1_mean, q2k1_std = compute_mean_std_on_qk(q2, k1)
-        # q2k2_mean, q2k2_std = compute_mean_std_on_qk(q2, k2)
-        # q2k_addit_mean, q2k_addit_std = compute_mean_std_on_qk(q2, k_addit)
-
-        # k1 = q2k2_std * ((k1 - q2k1_mean) / (q2k1_std + 1e-6)) + q2k2_mean
-        # k_addit = q2k2_std * ((k_addit - q2k_addit_mean) / (q2k_addit_std + 1e-6)) + q2k2_mean
-
-        # q1 = q1.permute(0, 2, 1, 3)  # [B, L1, num_heads, head_dim]
-        # q2 = q2.permute(0, 2, 1, 3)  # [B, L2, num_heads, head_dim]
-        # k1 = k1.permute(0, 2, 1, 3)  # [B, L1, num_heads, head_dim]
-        # k_addit = k_addit.permute(0, 2, 1, 3)  # [B, L3, num_heads, head_dim]
-        # k2 = k2.permute(0, 2, 1, 3)  # [B, L2, num_heads, head_dim]
-        # v1 = v1.permute(0, 2, 1, 3)  # [B, L1, num_heads, head_dim]
-        # v_addit = v_addit.permute(0, 2, 1, 3)  # [B, L3, num_heads, head_dim]
-        # v2 = v2.permute(0, 2, 1, 3)  # [B, L2, num_heads, head_dim]
-
-        # concatenate ks and vs
-        k2 = torch.cat([k2, k1, k_addit], dim=1)
-        v2 = torch.cat([v2, v1, v_addit], dim=1)
 
         # compute attention
-        x1 = flash_attention(q1, k_context1, v_context1, k_lens=context_lens)
-        x2 = flash_attention(q2, k2, v2, k_lens=context_lens)
+        x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
+        # x2_1 = flash_attention(q2, k1, v1) 
+        if not should_addit:
+            x2 = x1.clone()
+        else:
+            # concatenate ks and vs
+            Q2 = torch.cat([q_addit, q2], dim=1)
+            K2 = torch.cat([k1, k_addit, k2], dim=1)
+            V2 = torch.cat([v1, v_addit, v2], dim=1)
+            x2 = flash_attention(Q2, K2, V2)
+            # gamma = 0.8
+            # x2 = gamma * x1 + (1-gamma) * x2_addi
+            
 
         # output
         x1 = x1.flatten(2)
@@ -251,7 +214,8 @@ class PairedWanAttentionBlock(nn.Module):
         context2,
         addit_context,
         context_lens,
-        save_tensors_dir=None
+        save_tensors_dir=None,
+        should_addit=False
     ):
         r"""
         Args:
@@ -277,8 +241,8 @@ class PairedWanAttentionBlock(nn.Module):
             x2 = x2 + y2 * e[2]
 
         # cross-attention & ffn function
-        def cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir):
-            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), context1, context2, addit_context, context_lens, save_tensors_dir)
+        def cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir, should_addit):
+            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), context1, context2, addit_context, context_lens, save_tensors_dir, should_addit=should_addit)
             x1 = x1 + _x1
             x2 = x2 + _x2
             y1 = self.ffn(self.norm2(x1).float() * (1 + e[4]) + e[3])
@@ -288,7 +252,7 @@ class PairedWanAttentionBlock(nn.Module):
                 x2 = x2 + y2 * e[5]
             return x1, x2
 
-        x1, x2 = cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir)
+        x1, x2 = cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir, should_addit)
         return x1, x2
 
 class PairedWanModel(ModelMixin, ConfigMixin):
