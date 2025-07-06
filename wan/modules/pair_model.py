@@ -389,7 +389,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         clip_fea=None,
         y1=None, y2=None,
         addit_context=None,
-        save_tensors_dir=None
+        save_tensors_dir=None,
+        should_addit=False
     ):
         r"""
         Forward pass through the diffusion model
@@ -494,7 +495,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             context2=context2,
             addit_context=addit_context,
             context_lens=context_lens,
-            save_tensors_dir=None)
+            save_tensors_dir=None,
+            should_addit=should_addit)
 
         for i, block in enumerate(self.blocks):
             if i == len(self.blocks) - 1:
@@ -502,6 +504,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
                 kwargs['save_tensors_dir'] = save_tensors_dir
             print(i, kwargs['save_tensors_dir'])
             x1, x2 = block(x1, x2, **kwargs)
+            if i == len(self.blocks) - 1:
+                kwargs['save_tensors_dir'] = None
 
         # head
         x1 = self.head(x1, e)
