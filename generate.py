@@ -268,7 +268,7 @@ def _parse_args():
     parser.add_argument(
         "--addit_prompt",
         type=str,
-        default="",
+        default=None,
         help="The addit prompt. Must be used with paired_generation=True."
     )
     parser.add_argument(
@@ -654,7 +654,7 @@ def generate(args):
                 normalize=True,
                 value_range=(-1, 1))
             
-            if paired_video is not None:
+            if args.paired_generation is True and paired_video is not None:
                 paired_save_file = args.save_file.replace(
                     '.mp4', '_paired.mp4')
                 logging.info(f"Saving paired video to {paired_save_file}")
