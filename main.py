@@ -16,7 +16,7 @@ if __name__ == "__main__":
         "A white kitten playing with a ball."
     ]
 
-    seeds = [ 1024 ]
+    seeds = [ '1024' ]
 
     addit_prompt = "A red octopus moving its tentacles around."
 
