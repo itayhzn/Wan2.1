@@ -630,11 +630,11 @@ def generate(args):
         raise ValueError(f"Unkown task type: {args.task}")
 
     if rank == 0:
-        if args.save_file is None:
-            suffix = '.png' if "t2i" in args.task else '.mp4'
-            dir_name = 'generated'
-            
-            args.save_file = f"{dir_name}/{encoded_params}{suffix}"
+        # if args.save_file is None:
+        suffix = '.png' if "t2i" in args.task else '.mp4'
+        dir_name = 'generated'
+        
+        args.save_file = f"{dir_name}/{encoded_params}{suffix}"
 
         if "t2i" in args.task:
             logging.info(f"Saving generated image to {args.save_file}")
