@@ -14,6 +14,8 @@ from datetime import datetime
 
 import os
 
+from utils import save_tensors
+
 __all__ = ['WanModel']
 
 T5_CONTEXT_TOKEN_NUMBER = 512
@@ -92,20 +94,6 @@ class PairedWanSelfAttention(nn.Module):
 
 class PairedWanT2VCrossAttention(WanSelfAttention):
 
-    def save_tensors(self, save_tensors_dir, q1, q2, k1, k2, k_context1, k_addit, v1, v2, v_context1, v_addit):
-        r"""
-        Save tensors to disk for debugging purposes.
-        """
-        # mkdir if not exists
-        if not os.path.exists(save_tensors_dir):
-            os.makedirs(save_tensors_dir)
-        print(f'======= Saving tensors to {save_tensors_dir}')
-        for name, tensor in zip(['q1', 'q2', 'k1', 'k2', 'k_context1', 'k_addit', 'v1', 'v2', 'v_context1', 'v_addit'],
-                                [q1, q2, k1, k2, k_context1, k_addit, v1, v2, v_context1, v_addit]):
-            print(f'\tSaving tensor {name} to {os.path.join(save_tensors_dir, name)}')
-            torch.save(tensor.clone(), os.path.join(save_tensors_dir, f'{name}.pt'))
-        print(f'======= Saved tensors to {save_tensors_dir}')
-
     def forward(self, x1, x2, context1, context2, addit_context, context_lens, save_tensors_dir=None, should_addit=False):
         r"""
         Args:
@@ -134,7 +122,19 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
 
         # save q1, q2, k1, k2, k_addit, v1, v2, v_addit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
         if save_tensors_dir is not None:
-            self.save_tensors(save_tensors_dir, q1, q2, k1, k2, k_context1, k_addit, v1, v2, v_context1, v_addit)
+            tensors_dict = {
+                'q1': q1, 
+                'q2': q2, 
+                'k1': k1, 
+                'k2': k2,
+                'k_context1': k_context1, 
+                'k_addit': k_addit,
+                'v1': v1, 
+                'v2': v2, 
+                'v_context1': v_context1, 
+                'v_addit': v_addit
+            }
+            save_tensors(save_tensors_dir, tensors_dict)
 
         
 
@@ -142,8 +142,10 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
         # x2_1 = flash_attention(q2, k1, v1) 
         if not should_addit:
+            print(f"should_addit is False, copying attention from x1")
             x2 = x1.clone()
         else:
+            print(f"should_addit is True, computing attention for x2")
             # concatenate ks and vs
             Q2 = torch.cat([q_addit, q2], dim=1)
             K2 = torch.cat([k1, k_addit, k2], dim=1)

@@ -25,6 +25,8 @@ from .utils.fm_solvers import (
 )
 from .utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 
+from utils import save_tensors
+
 class PairedWanT2V:
 
     def __init__(
@@ -265,7 +267,7 @@ class PairedWanT2V:
 
                 self.model.to(self.device)
 
-                # arg_c['save_tensors_dir'] = f'/home/ai_center/ai_data/itaytuviah/Wan2.1/tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
+                arg_c['save_tensors_dir'] = f'tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
                 
                 noise_pred_cond1, noise_pred_cond2 = self.model(
                     latents1, latents2, t=timestep, **arg_c)
@@ -296,9 +298,25 @@ class PairedWanT2V:
                 
                 latents1 = [temp_x0_1.squeeze(0)]
                 latents2 = [temp_x0_2.squeeze(0)]
+
+                if encoded_params is not None:
+                    # predict x0 from latents
+                    sigma_t = self.model.sigmas[self.idx]
+                    x0_pred_1 = latents1[0].clone() - sigma_t * noise_pred_cond1
+                    x0_pred_2 = latents2[0].clone() - sigma_t * noise_pred_cond2
+                    
+                    tensors_dict = {
+                        'latent1': latents1[0].clone(),
+                        'latent2': latents2[0].clone(),
+                        'x0_pred1': x0_pred_1.clone(),
+                        'x0_pred2': x0_pred_2.clone(),
+                    }
+                    save_tensors_dir = f'tensors/{encoded_params}/timestep_{idx}'
+
                 
             x0_1 = latents1
             x0_2 = latents2
+
 
             if offload_model:
                 self.model.cpu()
