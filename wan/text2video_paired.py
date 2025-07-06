@@ -312,6 +312,10 @@ class PairedWanT2V:
                         'x0_pred2': x0_pred_2.clone(),
                     }
                     save_tensors_dir = f'tensors/{encoded_params}/timestep_{idx}'
+                    if not os.path.exists(save_tensors_dir):
+                        os.makedirs(save_tensors_dir)
+                    logging.info(f'Saving tensors to {save_tensors_dir}')
+                    save_tensors(save_tensors_dir, tensors_dict)
 
                 
             x0_1 = latents1

@@ -22,14 +22,14 @@ def encode_params(prompt, task, size, ulysses_size, ring_size, addit_prompt=None
 
     return save_file
 
-def save_tensors(self, save_tensors_dir, tensors_dict):
+def save_tensors(save_tensors_dir, tensors_dict):
     r"""
     Save tensors to disk for debugging purposes.
     """
     # mkdir if not exists
     if not os.path.exists(save_tensors_dir):
         os.makedirs(save_tensors_dir)
-        
+
     print(f'======= Saving tensors to {save_tensors_dir}')
     for name, tensor in tensors_dict.items():
         print(f'\tSaving tensor {name} to {os.path.join(save_tensors_dir, name)}')
