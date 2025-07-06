@@ -147,12 +147,13 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         else:
             print(f"should_addit is True, computing attention for x2")
             # concatenate ks and vs
-            Q2 = torch.cat([q_addit, q2], dim=1)
+            Q2 = torch.cat([q1, q_addit, q2], dim=1)
             K2 = torch.cat([k1, k_addit, k2], dim=1)
             V2 = torch.cat([v1, v_addit, v2], dim=1)
+            print(f"Q2 shape: {Q2.shape}, K2 shape: {K2.shape}, V2 shape: {V2.shape}")
             x2 = flash_attention(Q2, K2, V2)
             # gamma = 0.8
-            # x2 = gamma * x1 + (1-gamma) * x2_addi
+            # x2 = gamma * x1 + (1-gamma) * x2_addit
             
 
         # output
