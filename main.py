@@ -3,7 +3,7 @@ import torch
 from datetime import datetime
 
 if __name__ == "__main__":
-    experiment_name = "baseline"
+    experiment_name = "additpaper"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
