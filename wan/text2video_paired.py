@@ -301,7 +301,7 @@ class PairedWanT2V:
 
                 if encoded_params is not None:
                     # predict x0 from latents
-                    sigma_t = self.paired_sample_scheduler.sigmas[self.idx]
+                    sigma_t = paired_sample_scheduler.sigmas[self.idx]
                     x0_pred_1 = latents1[0].clone() - sigma_t * noise_pred_cond1
                     x0_pred_2 = latents2[0].clone() - sigma_t * noise_pred_cond2
                     
