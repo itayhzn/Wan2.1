@@ -48,7 +48,7 @@ def compute_subject_mask(q, k_context, subject_token_index):
     q = q.clone()[0, 3, :, :]  # [L1, d]
     k_context = k_context.clone()[0, 3, subject_token_index, :].unsqueeze(0)  # [1, d]
     # compute attention map for the subject token
-    attention_map = q @ k_context.transpose(-2, -1).squeeze(-1) # [L1]
+    attention_map = q @ k_context.transpose(-2, -1) # [L1, 1]
     # get mask with softmax
-    subject_mask = attention_map.softmax().unsqueeze(-1).unsqueeze(-1).unsqueeze(0) # [1, 1, L1, 1]
+    subject_mask = attention_map.softmax(dim=-1).unsqueeze(-1).unsqueeze(0) # [1, L1, 1, 1]
     return subject_mask
