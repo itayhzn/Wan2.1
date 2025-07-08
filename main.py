@@ -3,7 +3,7 @@ import torch
 from datetime import datetime
 
 if __name__ == "__main__":
-    experiment_name = "in_selfattn"
+    experiment_name = "attn_head_4_subject_mask"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
