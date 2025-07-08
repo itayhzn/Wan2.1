@@ -150,14 +150,25 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
             # Q2 = torch.cat([q1, q_addit, q2], dim=1)
             # K2 = torch.cat([k1, k_addit, k2], dim=1)
             # V2 = torch.cat([v1, v_addit, v2], dim=1)
-            Q2 = q2
-            K2 = k_addit
-            V2 = v_addit
-            # print(f"Q2 shape: {Q2.shape}, K2 shape: {K2.shape}, V2 shape: {V2.shape}")
-            x2 = flash_attention(Q2, K2, V2)
+            # Q2 = q2
+            # K2 = k_addit
+            # V2 = v_addit
+            # # print(f"Q2 shape: {Q2.shape}, K2 shape: {K2.shape}, V2 shape: {V2.shape}")
+            # x2 = flash_attention(Q2, K2, V2)
             # gamma = 0.8
             # x2 = gamma * x1 + (1-gamma) * x2_addit
+
+            x2_1 = flash_attention(q2, k1, v1)
+            x2_addit = flash_attention(q2, k_addit, v_addit)
+            x2_2 = flash_attention(q2, k2, v2)
             
+            # normalize so that all have the same norm
+            # x2_1 = x2_1 / (x2_1.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            # x2_addit = x2_addit / (x2_addit.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            # x2_2 = x2_2 / (x2_2.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+
+            x2 = x2_1 + x2_addit + x2_2
+                        
 
         # output
         x1 = x1.flatten(2)
