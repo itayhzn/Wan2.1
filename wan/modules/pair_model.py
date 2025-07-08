@@ -14,7 +14,7 @@ from datetime import datetime
 
 import os
 
-from utils import save_tensors
+from utils import save_tensors, compute_subject_mask
 
 __all__ = ['WanModel']
 
@@ -77,28 +77,14 @@ class PairedWanSelfAttention(nn.Module):
             k_lens=seq_lens,
             window_size=self.window_size)
         
-        x2_2 = flash_attention(
+        x2 = flash_attention(
             q=rope_apply(q2, grid_sizes, freqs),
             k=rope_apply(k2, grid_sizes, freqs),
             v=v2,
             k_lens=seq_lens,
             window_size=self.window_size)
-        
-        x2_1 = flash_attention(
-            q=rope_apply(q2, grid_sizes, freqs),
-            k=rope_apply(k1, grid_sizes, freqs),
-            v=v1,
-            k_lens=seq_lens,
-            window_size=self.window_size)
-        
-        x2_addit = flash_attention(
-            q=q2,
-            k=k_addit, 
-            v=v_addit)
-        
-        x2 = x2_1 + x2_addit + x2_2
-
-                # output
+       
+        # output
         x1 = x1.flatten(2)
         x1 = self.o(x1)
 
@@ -135,6 +121,8 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         k_addit = self.norm_k(self.k(addit_context)).view(b, -1, n, d)
         v_addit = self.v(addit_context).view(b, -1, n, d)
 
+        subject_mask = compute_subject_mask(q1, k_context1, subject_token_index=5)
+
         # save q1, q2, k1, k2, k_addit, v1, v2, v_addit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
         if save_tensors_dir is not None:
             tensors_dict = {
@@ -147,11 +135,11 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
                 'v1': v1, 
                 'v2': v2, 
                 'v_context1': v_context1, 
-                'v_addit': v_addit
+                'v_addit': v_addit,
+                'subject_mask': subject_mask
             }
             save_tensors(save_tensors_dir, tensors_dict)
 
-        
 
         # compute attention
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
@@ -162,31 +150,20 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         else:
             print(f"should_addit is True, computing attention for x2")
             # concatenate ks and vs
-            # Q2 = torch.cat([q1, q_addit, q2], dim=1)
-            # K2 = torch.cat([k1, k_addit, k2], dim=1)
-            # V2 = torch.cat([v1, v_addit, v2], dim=1)
-            # Q2 = q2
-            # K2 = k_addit
-            # V2 = v_addit
-            # # print(f"Q2 shape: {Q2.shape}, K2 shape: {K2.shape}, V2 shape: {V2.shape}")
-            # x2 = flash_attention(Q2, K2, V2)
-            # gamma = 0.8
-            # x2 = gamma * x1 + (1-gamma) * x2_addit
+            Q2 = q2
+            K2 = k_addit
+            V2 = v_addit
+            # print(f"Q2 shape: {Q2.shape}, K2 shape: {K2.shape}, V2 shape: {V2.shape}")
+            x2_addit = flash_attention(Q2, K2, V2) # [b, F*W*H, n, d]
+            # now we have subject_mask of shape [b, F*W*H]
+            # apply subject_mask to x2_addit
+            x2_addit = x2_addit * subject_mask  # [b, F*W*H, n, d]
 
-            # x2_1 = flash_attention(q2, k1, v1)
-            # x2_addit = flash_attention(q2, k_addit, v_addit)
-            # x2_2 = flash_attention(q2, k2, v2)
-            
-            # # normalize so that all have the same norm
-            # x2_1 = x2_1 / (x2_1.norm(p=2, dim=-1, keepdim=True) + 1e-6)
-            # x2_addit = x2_addit / (x2_addit.norm(p=2, dim=-1, keepdim=True) + 1e-6)
-            # x2_2 = x2_2 / (x2_2.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            x2_1 = x1.clone() * (1-subject_mask)  # [b, F*W*H, n, d]
+            # blending
+            x2 = x2_1 + x2_addit  # [b, F*W*H, n, d]
 
-            # x2 = x2_1 + x2_addit + x2_2
-
-            x2 = x1.clone()
                         
-
         # output
         x1 = x1.flatten(2)
         x1 = self.o(x1)
