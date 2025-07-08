@@ -47,7 +47,7 @@ class PairedWanSelfAttention(nn.Module):
         self.norm_q = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
         self.norm_k = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
 
-    def forward(self, x1, x2, seq_lens, grid_sizes, freqs):
+    def forward(self, x1, x2, addit_context, seq_lens, grid_sizes, freqs):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -68,6 +68,7 @@ class PairedWanSelfAttention(nn.Module):
 
         q1, k1, v1 = qkv_fn(x1)
         q2, k2, v2 = qkv_fn(x2)
+        q_addit, k_addit, v_addit = qkv_fn(addit_context)
 
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
@@ -76,14 +77,28 @@ class PairedWanSelfAttention(nn.Module):
             k_lens=seq_lens,
             window_size=self.window_size)
         
-        x2 = flash_attention(
+        x2_2 = flash_attention(
             q=rope_apply(q2, grid_sizes, freqs),
             k=rope_apply(k2, grid_sizes, freqs),
             v=v2,
             k_lens=seq_lens,
             window_size=self.window_size)
         
-        # output
+        x2_1 = flash_attention(
+            q=rope_apply(q2, grid_sizes, freqs),
+            k=rope_apply(k1, grid_sizes, freqs),
+            v=v1,
+            k_lens=seq_lens,
+            window_size=self.window_size)
+        
+        x2_addit = flash_attention(
+            q=q2,
+            k=k_addit, 
+            v=v_addit)
+        
+        x2 = x2_1 + x2_addit + x2_2
+
+                # output
         x1 = x1.flatten(2)
         x1 = self.o(x1)
 
@@ -158,16 +173,18 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
             # gamma = 0.8
             # x2 = gamma * x1 + (1-gamma) * x2_addit
 
-            x2_1 = flash_attention(q2, k1, v1)
-            x2_addit = flash_attention(q2, k_addit, v_addit)
-            x2_2 = flash_attention(q2, k2, v2)
+            # x2_1 = flash_attention(q2, k1, v1)
+            # x2_addit = flash_attention(q2, k_addit, v_addit)
+            # x2_2 = flash_attention(q2, k2, v2)
             
-            # normalize so that all have the same norm
-            x2_1 = x2_1 / (x2_1.norm(p=2, dim=-1, keepdim=True) + 1e-6)
-            x2_addit = x2_addit / (x2_addit.norm(p=2, dim=-1, keepdim=True) + 1e-6)
-            x2_2 = x2_2 / (x2_2.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            # # normalize so that all have the same norm
+            # x2_1 = x2_1 / (x2_1.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            # x2_addit = x2_addit / (x2_addit.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            # x2_2 = x2_2 / (x2_2.norm(p=2, dim=-1, keepdim=True) + 1e-6)
 
-            x2 = x2_1 + x2_addit + x2_2
+            # x2 = x2_1 + x2_addit + x2_2
+
+            x2 = x1.clone()
                         
 
         # output
