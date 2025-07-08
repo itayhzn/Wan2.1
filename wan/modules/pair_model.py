@@ -163,9 +163,9 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
             x2_2 = flash_attention(q2, k2, v2)
             
             # normalize so that all have the same norm
-            # x2_1 = x2_1 / (x2_1.norm(p=2, dim=-1, keepdim=True) + 1e-6)
-            # x2_addit = x2_addit / (x2_addit.norm(p=2, dim=-1, keepdim=True) + 1e-6)
-            # x2_2 = x2_2 / (x2_2.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            x2_1 = x2_1 / (x2_1.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            x2_addit = x2_addit / (x2_addit.norm(p=2, dim=-1, keepdim=True) + 1e-6)
+            x2_2 = x2_2 / (x2_2.norm(p=2, dim=-1, keepdim=True) + 1e-6)
 
             x2 = x2_1 + x2_addit + x2_2
                         
