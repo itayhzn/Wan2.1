@@ -21,10 +21,10 @@ if __name__ == "__main__":
     addit_prompt =  "A white kitten" # "A red octopus moving its tentacles around."
 
     # redirect output to a file
-    with open(f"jobs-out-err/{experiment_name}_{datetime_str}.out", "w") as f:
+    with open(f"jobs-out-err/{datetime_str}_{experiment_name}.out", "w") as f:
         os.dup2(f.fileno(), 1)
     # redirect error output to a file
-    with open(f"jobs-out-err/{experiment_name}_{datetime_str}.err", "w") as f:
+    with open(f"jobs-out-err/{datetime_str}_{experiment_name}.err", "w") as f:
         os.dup2(f.fileno(), 2)
 
     os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}" --seeds {' '.join(seeds)} --paired_generation "True" --addit_prompt "{addit_prompt}" --experiment_name "{experiment_name}" """)
