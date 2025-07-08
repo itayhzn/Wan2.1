@@ -268,6 +268,7 @@ class PairedWanAttentionBlock(nn.Module):
         y1, y2 = self.self_attn(
             self.norm1(x1).float() * (1 + e[1]) + e[0],
             self.norm1(x2).float() * (1 + e[1]) + e[0], 
+            addit_context,
             seq_lens, grid_sizes,
             freqs)
         with amp.autocast(dtype=torch.float32):
