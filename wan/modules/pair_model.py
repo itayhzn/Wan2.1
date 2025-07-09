@@ -158,9 +158,9 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
             # apply subject_mask to x2_addit
             x2_addit = x2_addit * subject_mask  # [b, F*W*H, n, d]
 
-            x2_1 = x1.clone() * (1-subject_mask)  # [b, F*W*H, n, d]
+            # x2_1 = x1.clone() * (1-subject_mask)  # [b, F*W*H, n, d]
             # blending
-            x2 = x2_1 + x2_addit  # [b, F*W*H, n, d]
+            x2 = x2_addit  # [b, F*W*H, n, d]
 
                         
         # output
