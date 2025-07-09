@@ -10,12 +10,12 @@ def encode_params(prompt, task, size, ulysses_size, ring_size, addit_prompt=None
     
     formatted_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    save_file = ""
+    save_file = f"{formatted_time}_"
 
     if experiment_name:
         save_file += f"{experiment_name}_"
 
-    save_file += f"{task}_{size.replace('*','x') if sys.platform=='win32' else size}_{ulysses_size}_{ring_size}_{escape(prompt)}_{formatted_time}"
+    save_file += f"{task}_{size.replace('*','x') if sys.platform=='win32' else size}_{ulysses_size}_{ring_size}_{escape(prompt)}"
     
     if addit_prompt:
         save_file += "_ADDIT_" + escape(addit_prompt)
