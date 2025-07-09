@@ -40,13 +40,13 @@ def save_tensors(save_tensors_dir, tensors_dict):
 def compute_subject_mask(q, k_context, subject_token_index):
     """
     Compute a mask for the subject token in the attention map.
-    q: Tensor of shape [B, num_heads, L1, d]
-    k_context: Tensor of shape [B, num_heads, L2, d]
+    q: Tensor of shape [B, L1, num_heads, d]
+    k_context: Tensor of shape [B, L2, num_heads, d]
     """
     # Create a mask where the subject token is 1 and all others are 0
     # take only head 3 
-    q = q.clone()[0, 3, :, :]  # [L1, d]
-    k_context = k_context.clone()[0, 3, subject_token_index, :].unsqueeze(0)  # [1, d]
+    q = q.clone()[0, :, 3, :]  # [L1, d]
+    k_context = k_context.clone()[0, subject_token_index, 3, :].unsqueeze(0)  # [1, d]
     # compute attention map for the subject token
     attention_map = q @ k_context.transpose(-2, -1) # [L1, 1]
     # get mask with softmax
