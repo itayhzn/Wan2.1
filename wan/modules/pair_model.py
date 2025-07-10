@@ -120,7 +120,7 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         k_addit = self.norm_k(self.k(addit_context)).view(b, -1, n, d)
         v_addit = self.v(addit_context).view(b, -1, n, d)
 
-        subject_mask = compute_subject_mask(q1, k_context1, subject_token_index=5)
+        subject_mask = compute_subject_mask(q1, k_context1, subject_token_index=3)
 
         # save q1, q2, k1, k2, k_addit, v1, v2, v_addit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
         if save_tensors_dir is not None:
