@@ -13,13 +13,13 @@ if __name__ == "__main__":
         # "A jellyfish swimming in shallow water. The jellyfish has a translucent body with a distinctive pattern of white circles and lines. It appears to be swimming just below the surface of the water, which is dark and murky due to the presence of algae or other aquatic plants.",
         # "A dog playing with an orange ball with blue stripes. The dog picks up the ball and holds it in its mouth, conveying a sense of playfulness and energy. Throughout the video, the dog is seen playing with the ball, capturing the joy and excitement of the moment.",
         # "Athletic man doing gymnastics elements on horizontal bar in city park. Male sportsmen perform strength exercises outdoors.",
-        "A small brown dog playing with a red ball on a hardwood floor.",
+        "A small dog playing with a red ball on a hardwood floor.",
         # "A white kitten playing with a ball."
     ]
 
     seeds = [ '1024' ]
 
-    addit_prompt =  "A white kitten" # "A cat." # "A red octopus moving its tentacles around."
+    addit_prompt =  "A kitten" # "A cat." # "A red octopus moving its tentacles around."
 
     # redirect output to a file
     with open(f"jobs-out-err/{datetime_str}_{experiment_name}.out", "w") as f:
