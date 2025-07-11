@@ -12,7 +12,7 @@ def read_videojam_prompts():
     return [prompt.strip() for prompt in prompts if prompt.strip()]
 
 if __name__ == "__main__":
-    experiment_name = "attn_head_4_subject_mask"
+    experiment_name = "videojam"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 

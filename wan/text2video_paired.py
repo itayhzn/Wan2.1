@@ -267,7 +267,7 @@ class PairedWanT2V:
 
                 self.model.to(self.device)
 
-                arg_c['save_tensors_dir'] = f'tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
+                arg_c['save_tensors_dir'] = None # f'tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
                 
                 noise_pred_cond1, noise_pred_cond2 = self.model(
                     latents1, latents2, t=timestep, **arg_c)
