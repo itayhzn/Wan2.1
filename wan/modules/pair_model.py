@@ -67,8 +67,8 @@ class PairedWanSelfAttention(nn.Module):
             return q, k, v
 
         q1, k1, v1 = qkv_fn(x1) # [B, F*H*W, n, d]
-        q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
-        q_addit, k_addit, v_addit = qkv_fn(addit_context) # [B, L_addit, n, d]
+        # q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
+        # q_addit, k_addit, v_addit = qkv_fn(addit_context) # [B, L_addit, n, d]
 
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
