@@ -12,20 +12,18 @@ def read_videojam_prompts():
     return [prompt.strip() for prompt in prompts if prompt.strip()]
 
 if __name__ == "__main__":
-    experiment_name = "videojam"
+    experiment_name = "selfx2eqx1"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     prompts = read_videojam_prompts()
-    # [
-    #     # "A fish swims forward in a steady line, its tail swaying side to side as it propels itself.",
-    #     # "A red octopus moving its tentacles around.",
-    #     # "A jellyfish swimming in shallow water. The jellyfish has a translucent body with a distinctive pattern of white circles and lines. It appears to be swimming just below the surface of the water, which is dark and murky due to the presence of algae or other aquatic plants.",
-    #     # "A dog playing with an orange ball with blue stripes. The dog picks up the ball and holds it in its mouth, conveying a sense of playfulness and energy. Throughout the video, the dog is seen playing with the ball, capturing the joy and excitement of the moment.",
-    #     "Athletic man doing gymnastics elements on horizontal bar in city park. Male sportsmen perform strength exercises outdoors.",
-    #     # "A small dog playing with a red ball on a hardwood floor.",
-    #     # "A white kitten playing with a ball."
-    # ]
+    [
+        "Two ibexes navigating a rocky hillside. They are walking down a steep slope covered in small rocks and dirt. In the background, there are more rocks and some greenery visible through an opening in the rocks.",
+        "Athletic man doing gymnastics elements on horizontal bar in city park. Male sportsmen perform strength exercises outdoors.",
+        "A small dog playing with a red ball on a hardwood floor.",
+        "A white kitten playing with a ball.",
+        "A woman enjoying the fun of hula hooping."
+    ]
 
     seeds = [ '1024' ]
 

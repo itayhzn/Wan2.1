@@ -66,29 +66,34 @@ class PairedWanSelfAttention(nn.Module):
             v = self.v(x).view(b, s, n, d)
             return q, k, v
 
-        q1, k1, v1 = qkv_fn(x1)
-        q2, k2, v2 = qkv_fn(x2)
+        q1, k1, v1 = qkv_fn(x1) # [B, F*H*W, n, d]
+        q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
+        q_addit, k_addit, v_addit = qkv_fn(addit_context) # [B, L_addit, n, d]
 
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
             k=rope_apply(k1, grid_sizes, freqs),
             v=v1,
             k_lens=seq_lens,
-            window_size=self.window_size)
+            window_size=self.window_size) # [B, F*H*W, n, d]
         
-        x2 = flash_attention(
-            q=rope_apply(q2, grid_sizes, freqs),
-            k=rope_apply(k2, grid_sizes, freqs),
-            v=v2,
-            k_lens=seq_lens,
-            window_size=self.window_size)
+        # x2_2 = flash_attention(
+        #     q=rope_apply(q2, grid_sizes, freqs),
+        #     k=rope_apply(k2, grid_sizes, freqs),
+        #     v=v2,
+        #     k_lens=seq_lens,
+        #     window_size=self.window_size)
+        
+        # x2 = 0.5 * (x1 + x2_2)  # [B, F*H*W, n, d]
        
         # output
         x1 = x1.flatten(2)
         x1 = self.o(x1)
 
-        x2 = x2.flatten(2)
-        x2 = self.o(x2)
+        x2 = x1
+
+        # x2 = x2.flatten(2)
+        # x2 = self.o(x2)
         return x1, x2
 
 
