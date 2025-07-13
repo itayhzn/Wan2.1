@@ -195,8 +195,8 @@ if __name__ == "__main__":
 
     subject_masks = compute_subject_mask_on_latent(latents, points, labels, vae)
 
-    latent_to_visualize = latents[0][:3].cpu().permute(1,2,3,0).numpy()  # [f, h, w, 3]
-    latent_to_visualize = normalize_tensor(latent_to_visualize)  # Normalize to [0, 1]
+    latent_to_visualize = latents[0][:3].cpu().permute(1,2,3,0)  # [f, h, w, 3]
+    latent_to_visualize = normalize_tensor(latent_to_visualize).numpy()  # Normalize to [0, 1]
 
     for frame_idx, frame in enumerate(latent_to_visualize):
         # frame dim [C, H, W]
