@@ -111,9 +111,10 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
     latent: [1, c, f, h, w]
     """
     # decode the latent to get video frames and save them in dir
-    video = vae.decode(latents) # [1, c, f, h, w]
-    video = video[0]  # [c, f, h, w]
+    videos = vae.decode(latents) # [1, c, f, h, w]
+    video = videos[0]  # [c, f, h, w]
     video_dir = 'tmp_video_dir'
+    print(f"video shape: {video.shape}, latent shape: {latents[0].shape}, video max: {video.max()}, video min: {video.min()}")
     save_video_tensor_in_dir(video.permute(1,2,3,0).cpu().numpy(), video_dir)
 
     # translate points from latent space to video space
@@ -139,7 +140,7 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
     downsampled_masks = {}
     for frame_idx, mask in subject_mask.items():
         # downsample mask to match latent resolution
-        downsampled_mask = cv2.resize(mask.astype(np.float32), (latent.shape[-1], latent.shape[-2]), interpolation=cv2.INTER_LINEAR)
+        downsampled_mask = cv2.resize(mask.astype(np.float32), (latents[0].shape[-1], latents[0].shape[-2]), interpolation=cv2.INTER_LINEAR)
         downsampled_masks[frame_idx] = downsampled_mask
     
     # delete the video directory
