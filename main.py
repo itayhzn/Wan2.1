@@ -66,21 +66,28 @@ def save_video_in_dir(video_path, output_dir):
     for i, frame in enumerate(video):
         frame = Image.fromarray(frame)
         frame.save(os.path.join(output_dir, f"{i:04d}.jpg"))
-        
-if __name__ == "__main__":
-    predictor = SAM2VideoPredictor.from_pretrained("facebook/sam2-hiera-tiny")
+
+def delete_video_dir(video_dir):
+    if os.path.exists(video_dir):
+        for file in os.listdir(video_dir):
+            os.remove(os.path.join(video_dir, file))
+        os.rmdir(video_dir)
+
+def compute_mask(video_path, points, labels):
     video_dir = "tmp_video_dir"
+    # delete the directory if it exists
+    if os.path.exists(video_dir):
+        delete_video_dir(video_dir)
+    else:
+        os.makedirs(video_dir)
 
-    video_path = "generated/20250709_072402_attn_head_4_subject_mask_t2v-1.3B_832*480_1_1_A_small_brown_dog_playing_with_ADDIT_A_white_kitten.mp4"  # Path to your video file
-    video_frames = read_video(video_path)
     save_video_in_dir(video_path, video_dir)
-    
-    inference_state = predictor.init_state(video_dir)
 
+    predictor = SAM2VideoPredictor.from_pretrained("facebook/sam2-hiera-tiny")
+    inference_state = predictor.init_state(video_dir)
+    
     frame_idx = 0
     obj_id = 1
-    points = np.array([[650, 300], [300, 300]])
-    labels = np.array([1, 0])  # 1 for positive point,
 
     _,  out_obj_ids, out_mask_logits = predictor.add_new_points_or_box(
         inference_state=inference_state,
@@ -90,14 +97,31 @@ if __name__ == "__main__":
         labels=labels,
     )
 
-    plt.figure(figsize=(9, 6))
-    plt.title(f"frame {frame_idx}")
-    plt.imshow(Image.open(os.path.join(video_dir, f'{frame_idx:04d}.jpg')))
-    show_points(points, labels, plt.gca())
-    show_mask((out_mask_logits[0] > 0.0).cpu().numpy(), plt.gca(), obj_id=out_obj_ids[0])
-    # save frame to file os.path.join(video_dir, f'{frame_idx}_annotated.jpg')
-    plt.savefig(os.path.join(video_dir, f'{frame_idx:04d}_annotated.jpg'), bbox_inches='tight', pad_inches=0.1)
-    # close
-    plt.close()
+    video_segments = {}  # video_segments contains the per-frame segmentation results
+    for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
+        video_segments[out_frame_idx] = {
+            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+            for i, out_obj_id in enumerate(out_obj_ids)
+        }
 
+    delete_video_dir(video_dir)
+    return video_segments
+
+if __name__ == "__main__":
+    video_path = "generated/20250709_072402_attn_head_4_subject_mask_t2v-1.3B_832*480_1_1_A_small_brown_dog_playing_with_ADDIT_A_white_kitten.mp4"  # Path to your video file
+    points = np.array([[650, 300], [300, 300]])
+    labels = np.array([1, 0])  # 1 for positive point,
+
+    video_segments = compute_mask(video_path, points, labels)
+
+    video = read_video(video_path) # list of frames as numpy arrays
     
+    for frame_idx, frame in enumerate(video):
+        plt.figure(figsize=(9, 6))
+        plt.title(f"frame {frame_idx}")
+        plt.imshow(frame)
+        for out_obj_id, out_mask in video_segments[frame_idx].items():
+            show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+        plt.savefig(f"annotated_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        # close
+        plt.close()
