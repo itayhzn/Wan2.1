@@ -181,7 +181,7 @@ if __name__ == "__main__":
     latent_height, latent_width = latent.shape[-2], latent.shape[-1]
     video_height, video_width = video.shape[-2], video.shape[-1]
     
-    points = points * np.array([video_width / latent_width, video_height / latent_height])
+    points = points * np.array([latent_width / video_width, latent_height / video_height])
 
     for frame_idx, frame in enumerate(latent):
         plt.figure(figsize=(9, 6))
