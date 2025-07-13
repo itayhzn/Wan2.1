@@ -117,6 +117,8 @@ if __name__ == "__main__":
 
     video = read_video(video_path) # list of frames as numpy arrays
     
+    os.makedirs('tmp_video_dir', exist_ok=True)
+
     for frame_idx, frame in enumerate(video):
         mask = video_segments[frame_idx][1]
         # Remove extra dimensions and add channel dimension
