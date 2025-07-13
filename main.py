@@ -122,7 +122,6 @@ if __name__ == "__main__":
     for frame_idx, frame in enumerate(video):
         mask = video_segments[frame_idx][1]
         # Remove extra dimensions and add channel dimension
-        mask = np.squeeze(mask)  
         # Remove any singleton dimensions
         # pointwise multiply the frame with the mask
         # frame_with_mask = np.multiply(frame, mask[..., np.newaxis])
