@@ -160,6 +160,9 @@ if __name__ == "__main__":
 
     video_tensor = torch.tensor(np.array(video)).permute(0, 3, 1, 2).to(device)  # [F, H, W, C] -> [F, C, H, W]
     
+    # Convert to float and normalize to [0, 1]
+    video_tensor = video_tensor.float() / 255.0
+    
     video_tensor = video_tensor.permute(1, 0, 2, 3).unsqueeze(0)  # [1, C, F, H, W]
     
     latent = vae.encode(video_tensor)  # [1, c, f, h, w]
