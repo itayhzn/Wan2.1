@@ -60,37 +60,14 @@ def show_box(box, ax):
 
 def save_video_tensor_in_dir(video, output_dir):
     """
-    Save video tensor to a directory.
-    video: tensor with shape [C, F, H, W] or [F, H, W, C]
+        video: [F, H, W, C]
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Convert to numpy if it's a tensor
-    if torch.is_tensor(video):
-        video = video.cpu().numpy()
-    
-    # Handle different input formats
-    if video.ndim == 4:
-        if video.shape[0] == 3:  # [C, F, H, W]
-            video = video.transpose(1, 2, 3, 0)  # [F, H, W, C]
-        # else assume [F, H, W, C]
-    
-    # Normalize to [0, 255] and convert to uint8
-    if video.dtype == np.float32 or video.dtype == np.float64:
-        video = np.clip(video * 255.0, 0, 255).astype(np.uint8)
-    
     for i, frame in enumerate(video):
-        # Ensure frame is [H, W, C]
-        if frame.ndim == 3 and frame.shape[-1] == 3:
-            frame_img = Image.fromarray(frame)
-        else:
-            # Handle grayscale or single channel
-            if frame.ndim == 3:
-                frame = frame[:, :, 0]  # Take first channel
-            frame_img = Image.fromarray(frame, mode='L')
-        
-        frame_img.save(os.path.join(output_dir, f"{i:04d}.jpg"))
+        frame = Image.fromarray(frame)
+        frame.save(os.path.join(output_dir, f"{i:04d}.jpg"))
 
 def save_video_from_file_in_dir(video_path, output_dir):
     """
@@ -137,7 +114,7 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
     video = vae.decode(latents) # [1, c, f, h, w]
     video = video[0]  # [c, f, h, w]
     video_dir = 'tmp_video_dir'
-    save_video_tensor_in_dir(video.cpu().numpy(), video_dir)
+    save_video_tensor_in_dir(video.permute(1,2,3,0).cpu().numpy(), video_dir)
 
     # translate points from latent space to video space
     latent_height, latent_width = latents[0].shape[-2], latents[0].shape[-1]
