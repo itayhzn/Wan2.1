@@ -177,7 +177,7 @@ if __name__ == "__main__":
     points = np.array([[650, 300], [300, 300]])
     labels = np.array([1, 0])  # 1 for positive point,
 
-    latent_height, latent_width = latents.shape[-2], latents.shape[-1]
+    latent_height, latent_width = latents[0].shape[-2], latents[0].shape[-1]
     video_height, video_width = video.shape[-2], video.shape[-1]
     
     points = points * np.array([latent_width / video_width, latent_height / video_height])
