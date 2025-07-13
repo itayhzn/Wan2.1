@@ -16,6 +16,8 @@ device = torch.device('cpu')
 
 from sam2.sam2_video_predictor import SAM2VideoPredictor
 
+from .modules.vae import WanVAE
+
 def read_video(video_path):
     """
     Read mp4 video and return a list of frames as numpy arrays.
@@ -55,17 +57,20 @@ def show_box(box, ax):
     w, h = box[2] - box[0], box[3] - box[1]
     ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor='green', facecolor=(0, 0, 0, 0), lw=2))
 
-def save_video_in_dir(video_path, output_dir):
-    """
-    Save video frames to a directory.
-    """
+def save_video_tensor_in_dir(video, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
-    video = read_video(video_path)
+
     for i, frame in enumerate(video):
         frame = Image.fromarray(frame)
         frame.save(os.path.join(output_dir, f"{i:04d}.jpg"))
+
+def save_video_from_file_in_dir(video_path, output_dir):
+    """
+    Save video frames to a directory.
+    """
+    video = read_video(video_path)
+    save_video_tensor_in_dir(video, output_dir)
 
 def delete_video_dir(video_dir):
     if os.path.exists(video_dir):
@@ -73,16 +78,7 @@ def delete_video_dir(video_dir):
             os.remove(os.path.join(video_dir, file))
         os.rmdir(video_dir)
 
-def compute_mask(video_path, points, labels):
-    video_dir = "tmp_video_dir"
-    # delete the directory if it exists
-    if os.path.exists(video_dir):
-        delete_video_dir(video_dir)
-    else:
-        os.makedirs(video_dir)
-
-    save_video_in_dir(video_path, video_dir)
-
+def compute_subject_mask(video_dir, points, labels):
     predictor = SAM2VideoPredictor.from_pretrained("facebook/sam2-hiera-tiny")
     inference_state = predictor.init_state(video_dir)
     
@@ -97,42 +93,104 @@ def compute_mask(video_path, points, labels):
         labels=labels,
     )
 
-    video_segments = {}  # video_segments contains the per-frame segmentation results
+    subject_masks = {}
     for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
-        video_segments[out_frame_idx] = {
-            out_obj_id: np.squeeze((out_mask_logits[i] > 0.0).cpu().numpy())
-            # out_obj_id: np.squeeze(out_mask_logits[i].reshape(-1).softmax(dim=0).reshape(out_mask_logits.shape).cpu().numpy())
-            for i, out_obj_id in enumerate(out_obj_ids)
-        }
+        subject_masks[out_frame_idx] = np.squeeze((out_mask_logits[obj_id] > 0.0).cpu().numpy())
 
-    delete_video_dir(video_dir)
-    return video_segments
+    return subject_masks
+
+def compute_subject_mask_on_latent(latent, points, labels, vae):
+    """
+    Run latent through VAE to get video frames.
+    Then, use compute_subject_mask to get the subject masks.
+    Finally, downsample the masks to match the latent resolution.
+    """
+    # decode the latent to get video frames and save them in dir
+    video = vae.decode(latent)[0]
+    video_dir = 'tmp_video_dir'
+    save_video_tensor_in_dir(video, video_dir)
+
+    return None
+
+    # translate points from latent space to video space
+    latent_height, latent_width = latent.shape[-2], latent.shape[-1]
+    video_height, video_width = video.shape[-2], video.shape[-1]
+    points = points * np.array([video_width / latent_width, video_height / latent_height])
+    
+    # compute subject mask
+    subject_mask = compute_subject_mask(video_dir, points, labels)
+    
+    # downsample the masks to match the latent resolution
+    downsampled_masks = {}
+    for frame_idx, mask in subject_mask.items():
+        # downsample mask to match latent resolution
+        downsampled_mask = cv2.resize(mask.astype(np.float32), (latent.shape[-1], latent.shape[-2]), interpolation=cv2.INTER_LINEAR)
+        downsampled_masks[frame_idx] = downsampled_mask
+    
+    # delete the video directory
+    # delete_video_dir(video_dir)
+
+    return downsampled_masks
+
+def normalize_tensor(tensor):
+    """
+    Normalize a tensor to the range [0, 1].
+    tensor: [f, h, w]
+    """
+    min_val = tensor.min()
+    max_val = tensor.max()
+    if max_val - min_val == 0:
+        return tensor
+    t = (tensor - min_val) / (max_val - min_val)
+    # change type to float32 for better visualization
+    return t.float()
 
 if __name__ == "__main__":
+    os.makedirs('tmp_video_dir', exist_ok=True)
+    
+    device = 'cuda'
+    vae = WanVAE(
+            vae_pth=os.path.join('Wan2.1-T2V-1.3B', 'Wan2.1_VAE.pth'),
+            device=device)
     video_path = "generated/20250709_072402_attn_head_4_subject_mask_t2v-1.3B_832*480_1_1_A_small_brown_dog_playing_with_ADDIT_A_white_kitten.mp4"  # Path to your video file
+    
+    # subject_masks = compute_subject_mask(video_path, points, labels)
+
+    video = read_video(video_path) # list of frames as numpy arrays
+
+    video_tensor = torch.tensor(np.array(video)).permute(0, 3, 1, 2).to(device) 
+    
+    latent = vae.encode(video_tensor)[0]  # Encode the video to get the latent representation
+
+    latent = normalize_tensor(latent)  # Normalize the latent for better visualization
+
+    for frame_idx, frame in enumerate(latent):
+        plt.figure(figsize=(9, 6))
+        plt.title(f"latent {frame_idx}")
+        plt.imshow(frame.permute(1, 2, 0).cpu().numpy())
+        plt.savefig(f"tmp_video_dir/latent_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        # close
+        plt.close()
+
     points = np.array([[650, 300], [300, 300]])
     labels = np.array([1, 0])  # 1 for positive point,
 
-    video_segments = compute_mask(video_path, points, labels)
+    # compute_subject_mask_on_latent(video_tensor, points, labels, vae)
 
-    video = read_video(video_path) # list of frames as numpy arrays
-    
-    os.makedirs('tmp_video_dir', exist_ok=True)
+    # for frame_idx, frame in enumerate(video):
+    #     mask = subject_masks[frame_idx]
+    #     subject = np.multiply(frame, mask[..., np.newaxis])
+    #     background = np.multiply(frame, (1 - mask[..., np.newaxis]))
+    #     plt.figure(figsize=(9, 6))
+    #     plt.title(f"subject {frame_idx}")
+    #     plt.imshow(subject)
+    #     plt.savefig(f"tmp_video_dir/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+    #     # close
+    #     plt.close()
 
-    for frame_idx, frame in enumerate(video):
-        mask = video_segments[frame_idx][1]
-        subject = np.multiply(frame, mask[..., np.newaxis])
-        background = np.multiply(frame, (1 - mask[..., np.newaxis]))
-        plt.figure(figsize=(9, 6))
-        plt.title(f"subject {frame_idx}")
-        plt.imshow(subject)
-        plt.savefig(f"tmp_video_dir/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
-        # close
-        plt.close()
-
-        plt.figure(figsize=(9, 6))
-        plt.title(f"background {frame_idx}")
-        plt.imshow(background)
-        plt.savefig(f"tmp_video_dir/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
-        # close
-        plt.close()
+    #     plt.figure(figsize=(9, 6))
+    #     plt.title(f"background {frame_idx}")
+    #     plt.imshow(background)
+    #     plt.savefig(f"tmp_video_dir/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+    #     # close
+    #     plt.close()
