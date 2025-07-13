@@ -111,10 +111,10 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
     video = vae.decode(latents) # [1, c, f, h, w]
     video = video[0]  # [c, f, h, w]
     video_dir = 'tmp_video_dir'
-    save_video_tensor_in_dir(video, video_dir)
+    save_video_tensor_in_dir(video.cpu().numpy(), video_dir)
 
     # translate points from latent space to video space
-    latent_height, latent_width = latent.shape[-2], latent.shape[-1]
+    latent_height, latent_width = latents[0].shape[-2], latents[0].shape[-1]
     video_height, video_width = video.shape[-2], video.shape[-1]
     points = points * np.array([video_width / latent_width, video_height / latent_height])
     
