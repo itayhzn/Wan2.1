@@ -198,6 +198,8 @@ if __name__ == "__main__":
     latent_to_visualize = latents[0][:3].cpu().permute(1,2,3,0)  # [f, h, w, 3]
     latent_to_visualize = normalize_tensor(latent_to_visualize).numpy()  # Normalize to [0, 1]
 
+    os.makedirs('tmp_video_dir', exist_ok=True)
+
     for frame_idx, frame in enumerate(latent_to_visualize):
         # frame dim [C, H, W]
         mask = subject_masks[frame_idx]
