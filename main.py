@@ -133,17 +133,6 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
     # compute subject mask
     subject_mask = compute_subject_mask(video_dir, points, labels)
     
-    for frame_idx, frame in enumerate(video):
-        plt.figure(figsize=(9, 6))
-        plt.title(f"frame {frame_idx}")
-        plt.imshow(frame.cpu().numpy(), cmap='gray')
-        show_points(points, labels, plt.gca(), marker_size=200)
-        show_mask(subject_mask[frame_idx], plt.gca(), obj_id=1, random_color=True)
-        plt.savefig(f"tmp_video_dir/video_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
-        # close
-        plt.close()
-        break
-
     # downsample the masks to match the latent resolution
     downsampled_masks = {}
     for frame_idx, mask in subject_mask.items():
@@ -152,7 +141,7 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
         downsampled_masks[frame_idx] = downsampled_mask
     
     # delete the video directory
-    # delete_video_dir(video_dir)
+    delete_video_dir(video_dir)
 
     return downsampled_masks
 
@@ -206,11 +195,15 @@ if __name__ == "__main__":
 
     subject_masks = compute_subject_mask_on_latent(latents, points, labels, vae)
 
-    for frame_idx, frame in enumerate(latents[0]):
+    latent_to_visualize = latents[0][:3].cpu().permute(1,2,3,0).numpy()  # [f, h, w, 3]
+    latent_to_visualize = normalize_tensor(latent_to_visualize)  # Normalize to [0, 1]
+
+    for frame_idx, frame in enumerate(latent_to_visualize):
         # frame dim [C, H, W]
         mask = subject_masks[frame_idx]
-        subject = np.multiply(frame[:3], mask[..., np.newaxis])
-        background = np.multiply(frame[:3], (1 - mask[..., np.newaxis]))
+        subject = np.multiply(frame, mask[..., np.newaxis])
+        background = np.multiply(frame, (1 - mask[..., np.newaxis]))
+        
         plt.figure(figsize=(9, 6))
         plt.title(f"subject {frame_idx}")
         plt.imshow(subject)
