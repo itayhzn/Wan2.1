@@ -100,7 +100,8 @@ def compute_mask(video_path, points, labels):
     video_segments = {}  # video_segments contains the per-frame segmentation results
     for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
         video_segments[out_frame_idx] = {
-            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+            # out_obj_id: out_mask_logits[i].cpu().numpy()
+            out_obj_id: out_mask_logits[i].softmax(dim=0).cpu().numpy
             for i, out_obj_id in enumerate(out_obj_ids)
         }
 
@@ -117,11 +118,13 @@ if __name__ == "__main__":
     video = read_video(video_path) # list of frames as numpy arrays
     
     for frame_idx, frame in enumerate(video):
+        frame_with_mask = frame * video_segments[frame_idx][1]  # Scale frame for better visibility
+        # normalize the frame to be in range [0, 255]
+        frame_with_mask = (frame_with_mask - frame_with_mask.min()) / (frame_with_mask.max() - frame_with_mask.min()) * 255
+        frame_with_mask = frame_with_mask.astype(np.uint8)
         plt.figure(figsize=(9, 6))
         plt.title(f"frame {frame_idx}")
-        plt.imshow(frame)
-        for out_obj_id, out_mask in video_segments[frame_idx].items():
-            show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
-        plt.savefig(f"annotated_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        plt.imshow(frame_with_mask)
+        plt.savefig(f"tmp_video_dir/annotated_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
