@@ -65,6 +65,10 @@ def save_video_tensor_in_dir(video, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    # normalize video to 0-255
+    video = (video - video.min()) / (video.max() - video.min()) * 255.0
+    video = video.astype(np.uint8)  # Convert to uint8 for saving as images
+
     for i, frame in enumerate(video):
         frame = Image.fromarray(frame)
         frame.save(os.path.join(output_dir, f"{i:04d}.jpg"))
