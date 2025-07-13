@@ -16,7 +16,7 @@ device = torch.device('cpu')
 
 from sam2.sam2_video_predictor import SAM2VideoPredictor
 
-from .modules.vae import WanVAE
+from wan.modules.vae import WanVAE
 
 def read_video(video_path):
     """
