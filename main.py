@@ -100,8 +100,8 @@ def compute_mask(video_path, points, labels):
     video_segments = {}  # video_segments contains the per-frame segmentation results
     for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
         video_segments[out_frame_idx] = {
-            # out_obj_id: out_mask_logits[i].cpu().numpy()
-            out_obj_id: np.squeeze(out_mask_logits[i].reshape(-1).softmax(dim=0).reshape(out_mask_logits.shape).cpu().numpy())
+            out_obj_id: np.squeeze((out_mask_logits[i] > 0.0).cpu().numpy())
+            # out_obj_id: np.squeeze(out_mask_logits[i].reshape(-1).softmax(dim=0).reshape(out_mask_logits.shape).cpu().numpy())
             for i, out_obj_id in enumerate(out_obj_ids)
         }
 
@@ -121,15 +121,18 @@ if __name__ == "__main__":
 
     for frame_idx, frame in enumerate(video):
         mask = video_segments[frame_idx][1]
-        # Remove extra dimensions and add channel dimension
-        # pointwise multiply the frame with the mask
-        frame_with_mask = np.multiply(frame, mask[..., np.newaxis])
-        # normalize the frame to be in range [0, 255]
-        # frame_with_mask = (frame_with_mask - frame_with_mask.min()) / (frame_with_mask.max() - frame_with_mask.min()) * 255
-        # frame_with_mask = frame_with_mask.astype(np.uint8)
+        subject = np.multiply(frame, mask[..., np.newaxis])
+        background = np.multiply(frame, (1 - mask[..., np.newaxis]))
         plt.figure(figsize=(9, 6))
-        plt.title(f"frame {frame_idx}")
-        plt.imshow(frame_with_mask)
-        plt.savefig(f"tmp_video_dir/mask_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        plt.title(f"subject {frame_idx}")
+        plt.imshow(subject)
+        plt.savefig(f"tmp_video_dir/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        # close
+        plt.close()
+
+        plt.figure(figsize=(9, 6))
+        plt.title(f"background {frame_idx}")
+        plt.imshow(background)
+        plt.savefig(f"tmp_video_dir/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
