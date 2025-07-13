@@ -61,15 +61,10 @@ ENV DEBIAN_FRONTEND=
 # 5) Install SAM2
 #-------------------------------------------------
 
-WORKDIR /storage/itaytuviah
-
-RUN git clone https://github.com/facebookresearch/sam2.git 
-
-WORKDIR /storage/itaytuviah/sam2
-
-RUN conda run -n wan pip install -e .
-
-WORKDIR /storage/itaytuviah/Wan2.1
+RUN cd .. && git clone https://github.com/facebookresearch/sam2.git && \
+    cd sam2 && \
+    conda run -n wan pip install -e . && \
+    cd ../Wan2.1
 
 #-------------------------------------------------
 # 6) Entry point

@@ -92,11 +92,11 @@ if __name__ == "__main__":
 
     plt.figure(figsize=(9, 6))
     plt.title(f"frame {frame_idx}")
-    plt.imshow(Image.open(os.path.join(video_dir, f'{frame_idx}.jpg')))
+    plt.imshow(Image.open(os.path.join(video_dir, f'{frame_idx:04d}.jpg')))
     show_points(points, labels, plt.gca())
     show_mask((out_mask_logits[0] > 0.0).cpu().numpy(), plt.gca(), obj_id=out_obj_ids[0])
     # save frame to file os.path.join(video_dir, f'{frame_idx}_annotated.jpg')
-    plt.savefig(os.path.join(video_dir, f'{frame_idx}_annotated.jpg'), bbox_inches='tight', pad_inches=0.1)
+    plt.savefig(os.path.join(video_dir, f'{frame_idx:04d}_annotated.jpg'), bbox_inches='tight', pad_inches=0.1)
     # close
     plt.close()
 
