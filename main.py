@@ -103,7 +103,11 @@ def compute_subject_mask(video_dir, points, labels):
 
     subject_masks = {}
     for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
-        subject_masks[out_frame_idx] = np.squeeze((out_mask_logits[obj_id] > 0.0).cpu().numpy())
+        subject_masks[out_frame_idx] = {
+            np.squeeze((out_mask_logits[i] > 0.0).cpu().numpy())
+            for i, out_obj_id in enumerate(out_obj_ids)
+            if out_obj_id == obj_id
+        }
 
     return subject_masks
 
