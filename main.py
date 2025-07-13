@@ -158,16 +158,20 @@ if __name__ == "__main__":
 
     video = read_video(video_path) # list of frames as numpy arrays
 
-    video_tensor = torch.tensor(np.array(video)).permute(0, 3, 1, 2).to(device) 
+    video_tensor = torch.tensor(np.array(video)).permute(0, 3, 1, 2).to(device)  # [F, H, W, C] -> [F, C, H, W]
     
-    latent = vae.encode(video_tensor)[0]  # Encode the video to get the latent representation
+    video_tensor = video_tensor.permute(1, 0, 2, 3).unsqueeze(0)  # [1, C, F, H, W]
+    
+    latent = vae.encode(video_tensor)  # [1, c, f, h, w]
+
+    latent = latent[0][0] # [f, h, w]
 
     latent = normalize_tensor(latent)  # Normalize the latent for better visualization
 
     for frame_idx, frame in enumerate(latent):
         plt.figure(figsize=(9, 6))
         plt.title(f"latent {frame_idx}")
-        plt.imshow(frame.permute(1, 2, 0).cpu().numpy())
+        plt.imshow(frame.permute(1, 0).cpu().numpy(), cmap='gray')
         plt.savefig(f"tmp_video_dir/latent_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
