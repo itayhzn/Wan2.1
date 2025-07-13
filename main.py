@@ -101,7 +101,7 @@ def compute_mask(video_path, points, labels):
     for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
         video_segments[out_frame_idx] = {
             # out_obj_id: out_mask_logits[i].cpu().numpy()
-            out_obj_id: out_mask_logits[i].reshape(-1).softmax(dim=0).reshape(out_mask_logits.shape).squeeze(0).cpu().numpy()
+            out_obj_id: np.squeeze(out_mask_logits[i].reshape(-1).softmax(dim=0).reshape(out_mask_logits.shape).cpu().numpy())
             for i, out_obj_id in enumerate(out_obj_ids)
         }
 
@@ -122,7 +122,6 @@ if __name__ == "__main__":
     for frame_idx, frame in enumerate(video):
         mask = video_segments[frame_idx][1]
         # Remove extra dimensions and add channel dimension
-        # Remove any singleton dimensions
         # pointwise multiply the frame with the mask
         # frame_with_mask = np.multiply(frame, mask[..., np.newaxis])
         # normalize the frame to be in range [0, 255]

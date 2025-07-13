@@ -37,3 +37,4 @@ Wan2.1-I2V-14B-720P/
 poetry.lock
 jobs-out-err/
 run.slurm
+tmp_video_dir/
