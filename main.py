@@ -118,7 +118,9 @@ if __name__ == "__main__":
     video = read_video(video_path) # list of frames as numpy arrays
     
     for frame_idx, frame in enumerate(video):
-        frame_with_mask = frame * video_segments[frame_idx][1]  # Scale frame for better visibility
+        mask = video_segments[frame_idx][1]
+        # pointwise multiply the frame with the mask
+        frame_with_mask = np.multiply(frame, mask[..., np.newaxis])
         # normalize the frame to be in range [0, 255]
         frame_with_mask = (frame_with_mask - frame_with_mask.min()) / (frame_with_mask.max() - frame_with_mask.min()) * 255
         frame_with_mask = frame_with_mask.astype(np.uint8)
