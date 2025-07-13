@@ -126,8 +126,8 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
     save_video_tensor_in_dir(video.permute(1,2,3,0).cpu().numpy(), video_dir)
 
     # translate points from latent space to video space
-    latent_height, latent_width = latents[0].shape[-2], latents[0].shape[-1]
-    video_height, video_width = video.shape[-2], video.shape[-1]
+    latent_height, latent_width, latent_frame_cnt = latents[0].shape[-2], latents[0].shape[-1], latents[0].shape[-3]
+    video_height, video_width, video_frame_cnt = video.shape[-2], video.shape[-1], video.shape[-3]
     points = points * np.array([video_width / latent_width, video_height / latent_height])
     
     # compute subject mask
@@ -135,10 +135,14 @@ def compute_subject_mask_on_latent(latents, points, labels, vae):
     
     # downsample the masks to match the latent resolution
     downsampled_masks = {}
+    idx = 0
     for frame_idx, mask in subject_mask.items():
+        if frame_idx % (video_frame_cnt // latent_frame_cnt) == 0:
+            continue
         # downsample mask to match latent resolution
         downsampled_mask = cv2.resize(mask.astype(np.float32), (latents[0].shape[-1], latents[0].shape[-2]), interpolation=cv2.INTER_LINEAR)
-        downsampled_masks[frame_idx] = downsampled_mask
+        downsampled_masks[idx] = downsampled_mask
+        idx += 1
     
     # delete the video directory
     delete_video_dir(video_dir)
