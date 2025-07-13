@@ -12,10 +12,9 @@ RUN apt update && \
         ffmpeg \
         build-essential \
         curl \
-        wget
-        #  \
-        # git
-
+        wget \
+        git
+        
 #-------------------------------------------------
 # 2) User setup
 #-------------------------------------------------
@@ -57,6 +56,20 @@ RUN if command -v nvcc >/dev/null 2>&1; then \
 
 # Set the environment variable to avoid interactive prompts during package installations
 ENV DEBIAN_FRONTEND=
+
+#-------------------------------------------------
+# 5) Install SAM2
+#-------------------------------------------------
+
+WORKDIR /storage/itaytuviah
+
+RUN git clone https://github.com/facebookresearch/sam2.git 
+
+WORKDIR /storage/itaytuviah/sam2
+
+RUN conda run -n wan pip install -e .
+
+WORKDIR /storage/itaytuviah/Wan2.1
 
 #-------------------------------------------------
 # 6) Entry point
