@@ -122,15 +122,16 @@ if __name__ == "__main__":
     for frame_idx, frame in enumerate(video):
         mask = video_segments[frame_idx][1]
         # Remove extra dimensions and add channel dimension
-        mask = np.squeeze(mask)  # Remove any singleton dimensions
+        mask = np.squeeze(mask)  
+        # Remove any singleton dimensions
         # pointwise multiply the frame with the mask
-        frame_with_mask = np.multiply(frame, mask[..., np.newaxis])
+        # frame_with_mask = np.multiply(frame, mask[..., np.newaxis])
         # normalize the frame to be in range [0, 255]
-        frame_with_mask = (frame_with_mask - frame_with_mask.min()) / (frame_with_mask.max() - frame_with_mask.min()) * 255
-        frame_with_mask = frame_with_mask.astype(np.uint8)
+        # frame_with_mask = (frame_with_mask - frame_with_mask.min()) / (frame_with_mask.max() - frame_with_mask.min()) * 255
+        # frame_with_mask = frame_with_mask.astype(np.uint8)
         plt.figure(figsize=(9, 6))
-        plt.title(f"frame {frame_idx}")
-        plt.imshow(frame_with_mask)
-        plt.savefig(f"tmp_video_dir/annotated_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        plt.title(f"mask {frame_idx}")
+        plt.imshow(mask, cmap='gray')
+        plt.savefig(f"tmp_video_dir/mask_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
