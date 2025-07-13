@@ -29,6 +29,7 @@ def read_video(video_path):
         if not ret:
             break
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+        # frame dim [H, W, C]
         video.append(frame)
     cap.release()
     return video
@@ -156,9 +157,11 @@ if __name__ == "__main__":
     
     # subject_masks = compute_subject_mask(video_path, points, labels)
 
-    video = read_video(video_path) # list of frames as numpy arrays
+    video = read_video(video_path) # list of [H, W, C]
 
-    video_tensor = torch.tensor(np.array(video)).permute(0, 3, 1, 2).to(device)  # [F, H, W, C] -> [F, C, H, W]
+    video_tensor = torch.tensor(np.array(video)) # [F, H, W, C]
+    
+    video_tensor = video_tensor.permute(0, 3, 1, 2).to(device)  # [F, H, W, C] -> [F, C, H, W]
     
     # Convert to float and normalize to [0, 1]
     video_tensor = video_tensor.float() / 255.0
@@ -171,16 +174,24 @@ if __name__ == "__main__":
 
     latent = normalize_tensor(latent)  # Normalize the latent for better visualization
 
+
+    points = np.array([[650, 300], [300, 300]])
+    labels = np.array([1, 0])  # 1 for positive point,
+
+    latent_height, latent_width = latent.shape[-2], latent.shape[-1]
+    video_height, video_width = video.shape[-2], video.shape[-1]
+    
+    points = points * np.array([video_width / latent_width, video_height / latent_height])
+
     for frame_idx, frame in enumerate(latent):
         plt.figure(figsize=(9, 6))
         plt.title(f"latent {frame_idx}")
         plt.imshow(frame.permute(1, 0).cpu().numpy(), cmap='gray')
+        show_points(points, labels, plt.gca(), marker_size=200)
         plt.savefig(f"tmp_video_dir/latent_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
-
-    points = np.array([[650, 300], [300, 300]])
-    labels = np.array([1, 0])  # 1 for positive point,
+        break
 
     # compute_subject_mask_on_latent(video_tensor, points, labels, vae)
 
