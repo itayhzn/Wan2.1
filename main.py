@@ -100,18 +100,18 @@ def compute_subject_mask(video_dir, points, labels):
 
     return subject_masks
 
-def compute_subject_mask_on_latent(latent, points, labels, vae):
+def compute_subject_mask_on_latent(latents, points, labels, vae):
     """
     Run latent through VAE to get video frames.
     Then, use compute_subject_mask to get the subject masks.
     Finally, downsample the masks to match the latent resolution.
+    latent: [1, c, f, h, w]
     """
     # decode the latent to get video frames and save them in dir
-    video = vae.decode(latent)[0]
+    video = vae.decode(latents) # [1, c, f, h, w]
+    video = video[0]  # [c, f, h, w]
     video_dir = 'tmp_video_dir'
     save_video_tensor_in_dir(video, video_dir)
-
-    return None
 
     # translate points from latent space to video space
     latent_height, latent_width = latent.shape[-2], latent.shape[-1]
@@ -121,6 +121,17 @@ def compute_subject_mask_on_latent(latent, points, labels, vae):
     # compute subject mask
     subject_mask = compute_subject_mask(video_dir, points, labels)
     
+    for frame_idx, frame in enumerate(video):
+        plt.figure(figsize=(9, 6))
+        plt.title(f"frame {frame_idx}")
+        plt.imshow(frame.cpu().numpy(), cmap='gray')
+        show_points(points, labels, plt.gca(), marker_size=200)
+        show_mask(subject_mask[frame_idx], plt.gca(), obj_id=1, random_color=True)
+        plt.savefig(f"tmp_video_dir/video_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        # close
+        plt.close()
+        break
+
     # downsample the masks to match the latent resolution
     downsampled_masks = {}
     for frame_idx, mask in subject_mask.items():
@@ -157,58 +168,47 @@ if __name__ == "__main__":
     
     # subject_masks = compute_subject_mask(video_path, points, labels)
 
-    video = read_video(video_path) # list of [H, W, C]
-
-    video = torch.tensor(np.array(video)) # [F, H, W, C]
+    video = torch.tensor(np.array(read_video(video_path))) # list of [H, W, C]
+    video = video.permute(3, 0, 1, 2).unsqueeze(0).to(device)  # [F, H, W, C] -> [1, C, F, H, W]
+    video = video.float() / 255.0 # Convert to float and normalize to [0, 1]
     
-    video = video.permute(0, 3, 1, 2).to(device)  # [F, H, W, C] -> [F, C, H, W]
+    latents = vae.encode(video)  # [1, c, f, h, w]
     
-    # Convert to float and normalize to [0, 1]
-    video = video.float() / 255.0
-    
-    video = video.permute(1, 0, 2, 3).unsqueeze(0)  # [1, C, F, H, W]
-    
-    latent = vae.encode(video)  # [1, c, f, h, w]
-
-    latent = latent[0][0] # [f, h, w]
-
-    latent = normalize_tensor(latent)  # Normalize the latent for better visualization
-
-
     points = np.array([[650, 300], [300, 300]])
     labels = np.array([1, 0])  # 1 for positive point,
 
-    latent_height, latent_width = latent.shape[-2], latent.shape[-1]
+    latent_height, latent_width = latents.shape[-2], latents.shape[-1]
     video_height, video_width = video.shape[-2], video.shape[-1]
     
     points = points * np.array([latent_width / video_width, latent_height / video_height])
 
-    for frame_idx, frame in enumerate(latent):
+    # for frame_idx, frame in enumerate(latent):
+    #     plt.figure(figsize=(9, 6))
+    #     plt.title(f"latent {frame_idx}")
+    #     plt.imshow(frame.cpu().numpy(), cmap='gray')
+    #     show_points(points, labels, plt.gca(), marker_size=200)
+    #     plt.savefig(f"tmp_video_dir/latent_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+    #     # close
+    #     plt.close()
+    #     break
+
+    subject_masks = compute_subject_mask_on_latent(latents, points, labels, vae)
+
+    for frame_idx, frame in enumerate(latents[0]):
+        # frame dim [C, H, W]
+        mask = subject_masks[frame_idx]
+        subject = np.multiply(frame[:3], mask[..., np.newaxis])
+        background = np.multiply(frame[:3], (1 - mask[..., np.newaxis]))
         plt.figure(figsize=(9, 6))
-        plt.title(f"latent {frame_idx}")
-        plt.imshow(frame.permute(1, 0).cpu().numpy(), cmap='gray')
-        show_points(points, labels, plt.gca(), marker_size=200)
-        plt.savefig(f"tmp_video_dir/latent_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        plt.title(f"subject {frame_idx}")
+        plt.imshow(subject)
+        plt.savefig(f"tmp_video_dir/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
-        break
 
-    # compute_subject_mask_on_latent(video_tensor, points, labels, vae)
-
-    # for frame_idx, frame in enumerate(video):
-    #     mask = subject_masks[frame_idx]
-    #     subject = np.multiply(frame, mask[..., np.newaxis])
-    #     background = np.multiply(frame, (1 - mask[..., np.newaxis]))
-    #     plt.figure(figsize=(9, 6))
-    #     plt.title(f"subject {frame_idx}")
-    #     plt.imshow(subject)
-    #     plt.savefig(f"tmp_video_dir/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
-    #     # close
-    #     plt.close()
-
-    #     plt.figure(figsize=(9, 6))
-    #     plt.title(f"background {frame_idx}")
-    #     plt.imshow(background)
-    #     plt.savefig(f"tmp_video_dir/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
-    #     # close
-    #     plt.close()
+        plt.figure(figsize=(9, 6))
+        plt.title(f"background {frame_idx}")
+        plt.imshow(background)
+        plt.savefig(f"tmp_video_dir/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        # close
+        plt.close()
