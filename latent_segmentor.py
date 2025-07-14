@@ -46,7 +46,8 @@ class LatentSegmentor:
         video_height, video_width, video_frame_cnt = video.shape[-2], video.shape[-1], video.shape[-3]
         points = (points * np.array([1.0 * video_width / latent_width, 1.0 * video_height / latent_height])).astype(int)    
         
-        save_video_tensor_in_dir(video, video_dir)
+        save_video_tensor_in_dir(video.permute(1,2,3,0), video_dir)
+        del videos, video  # free memory
         subject_masks = self._compute_subject_mask(video_dir, points, labels)
         delete_video_dir(video_dir)
 
