@@ -6,9 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
-
 from sam2.sam2_video_predictor import SAM2VideoPredictor
-from wan.modules.vae import WanVAE
 import uuid
 
 def encode_params(prompt, task, size, ulysses_size, ring_size, addit_prompt=None, experiment_name=None):
