@@ -20,7 +20,7 @@ def read_videojam_prompts():
 
 
 if __name__ == "__main__":
-    experiment_name = "attn_head_4_subject_mask"
+    experiment_name = "added_subject_prompt"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
