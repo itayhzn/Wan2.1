@@ -82,6 +82,9 @@ def save_video_tensor_in_dir(video, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    if isinstance(video, torch.Tensor):
+        video = video.cpu().numpy()
+
     # normalize video to 0-255
     video = (video - video.min()) / (video.max() - video.min()) * 255.0
     video = video.astype(np.uint8)  # Convert to uint8 for saving as images
