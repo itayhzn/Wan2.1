@@ -163,15 +163,11 @@ def normalize_tensor(tensor):
     return t.float()
 
 if __name__ == "__main__":
-    os.makedirs('tmp_video_dir', exist_ok=True)
-    
     device = 'cuda'
     vae = WanVAE(
             vae_pth=os.path.join('Wan2.1-T2V-1.3B', 'Wan2.1_VAE.pth'),
             device=device)
     video_path = "generated/20250709_072402_attn_head_4_subject_mask_t2v-1.3B_832*480_1_1_A_small_brown_dog_playing_with_ADDIT_A_white_kitten.mp4"  # Path to your video file
-    
-    # subject_masks = compute_subject_mask(video_path, points, labels)
 
     video = torch.tensor(np.array(read_video(video_path))) # list of [H, W, C]
     video = video.permute(3, 0, 1, 2).unsqueeze(0).to(device)  # [F, H, W, C] -> [1, C, F, H, W]
@@ -202,7 +198,7 @@ if __name__ == "__main__":
     latent_to_visualize = latents[0][:3].cpu().permute(1,2,3,0)  # [f, h, w, 3]
     latent_to_visualize = normalize_tensor(latent_to_visualize).numpy()  # Normalize to [0, 1]
 
-    os.makedirs('tmp_video_dir', exist_ok=True)
+    os.makedirs('sam2_mask_example', exist_ok=True)
 
     for frame_idx, frame in enumerate(latent_to_visualize):
         # frame dim [C, H, W]
@@ -213,13 +209,13 @@ if __name__ == "__main__":
         plt.figure(figsize=(9, 6))
         plt.title(f"subject {frame_idx}")
         plt.imshow(subject)
-        plt.savefig(f"tmp_video_dir/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(f"sam2_mask_example/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
 
         plt.figure(figsize=(9, 6))
         plt.title(f"background {frame_idx}")
         plt.imshow(background)
-        plt.savefig(f"tmp_video_dir/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(f"sam2_mask_example/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
         # close
         plt.close()
