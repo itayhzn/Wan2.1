@@ -123,7 +123,8 @@ class PairedWanT2V:
                  n_prompt="",
                  seed=-1,
                  offload_model=True,
-                 addit_prompt="",
+                 edit_prompt="",
+                 subject_prompt="",
                  encoded_params=None):
         r"""
         Generates video frames from text prompt using diffusion process.
@@ -149,7 +150,7 @@ class PairedWanT2V:
                 Random seed for noise generation. If -1, use random seed.
             offload_model (`bool`, *optional*, defaults to True):
                 If True, offloads models to CPU during generation to save VRAM
-            addit_prompt (`str`, *optional*, defaults to ""):
+            edit_prompt (`str`, *optional*, defaults to ""):
                 A prompt containing the objects to be added to the video. Will only be added to the second video.
 
         Returns:
@@ -159,7 +160,7 @@ class PairedWanT2V:
                 - N: Number of frames (81)
                 - H: Frame height (from size)
                 - W: Frame width from size)
-            The second video will contain the objects specified in `addit_prompt`.
+            The second video will contain the objects specified in `edit_prompt`.
         """
         # preprocess
         F = frame_num
@@ -181,16 +182,19 @@ class PairedWanT2V:
             self.text_encoder.model.to(self.device)
             context = self.text_encoder([input_prompt], self.device)
             context_null = self.text_encoder([n_prompt], self.device)
-            addit_context = self.text_encoder([addit_prompt], self.device)
+            edit_context = self.text_encoder([edit_prompt], self.device)
+            subject_context = self.text_encoder([subject_prompt], self.device)
             if offload_model:
                 self.text_encoder.model.cpu()
         else:
             context = self.text_encoder([input_prompt], torch.device('cpu'))
             context_null = self.text_encoder([n_prompt], torch.device('cpu'))
-            addit_context = self.text_encoder([addit_prompt], torch.device('cpu'))
+            edit_context = self.text_encoder([edit_prompt], torch.device('cpu'))
+            subject_context = self.text_encoder([subject_prompt], torch.device('cpu'))
             context = [t.to(self.device) for t in context]
             context_null = [t.to(self.device) for t in context_null]
-            addit_context = [t.to(self.device) for t in addit_context]
+            edit_context = [t.to(self.device) for t in edit_context]
+            subject_context = [t.to(self.device) for t in subject_context]
 
 
         noise1 = [
@@ -251,17 +255,17 @@ class PairedWanT2V:
             latents1 = noise1
             latents2 = noise2
 
-            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'addit_context': addit_context}
-            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'addit_context': context_null}
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null}
 
-            addit_timesteps = timesteps[7:]
+            edit_timesteps = timesteps[7:]
 
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
 
-                should_addit = t in addit_timesteps
-                arg_c['should_addit'] = should_addit
-                arg_null['should_addit'] = should_addit
+                should_edit = t in edit_timesteps
+                arg_c['should_edit'] = should_edit
+                arg_null['should_edit'] = should_edit
 
                 timestep = torch.stack(timestep)
 
@@ -299,23 +303,23 @@ class PairedWanT2V:
                 latents1 = [temp_x0_1.squeeze(0)]
                 latents2 = [temp_x0_2.squeeze(0)]
 
-                if encoded_params is not None:
-                    # predict x0 from latents
-                    sigma_t = paired_sample_scheduler.sigmas[idx]
-                    x0_pred_1 = latents1[0].clone() - sigma_t * noise_pred_cond1
-                    x0_pred_2 = latents2[0].clone() - sigma_t * noise_pred_cond2
+                # if encoded_params is not None:
+                #     # predict x0 from latents
+                #     sigma_t = paired_sample_scheduler.sigmas[idx]
+                #     x0_pred_1 = latents1[0].clone() - sigma_t * noise_pred_cond1
+                #     x0_pred_2 = latents2[0].clone() - sigma_t * noise_pred_cond2
                     
-                    tensors_dict = {
-                        'latent1': latents1[0].clone(),
-                        'latent2': latents2[0].clone(),
-                        'x0_pred1': x0_pred_1.clone(),
-                        'x0_pred2': x0_pred_2.clone(),
-                    }
-                    save_tensors_dir = f'tensors/{encoded_params}/timestep_{idx}'
-                    if not os.path.exists(save_tensors_dir):
-                        os.makedirs(save_tensors_dir)
-                    logging.info(f'Saving tensors to {save_tensors_dir}')
-                    save_tensors(save_tensors_dir, tensors_dict)
+                #     tensors_dict = {
+                #         'latent1': latents1[0].clone(),
+                #         'latent2': latents2[0].clone(),
+                #         'x0_pred1': x0_pred_1.clone(),
+                #         'x0_pred2': x0_pred_2.clone(),
+                #     }
+                #     save_tensors_dir = f'tensors/{encoded_params}/timestep_{idx}'
+                #     if not os.path.exists(save_tensors_dir):
+                #         os.makedirs(save_tensors_dir)
+                #     logging.info(f'Saving tensors to {save_tensors_dir}')
+                #     save_tensors(save_tensors_dir, tensors_dict)
 
                 
             x0_1 = latents1

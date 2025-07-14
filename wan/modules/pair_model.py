@@ -47,7 +47,7 @@ class PairedWanSelfAttention(nn.Module):
         self.norm_q = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
         self.norm_k = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
 
-    def forward(self, x1, x2, addit_context, seq_lens, grid_sizes, freqs):
+    def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -57,8 +57,6 @@ class PairedWanSelfAttention(nn.Module):
         """
         b, s, n, d = *x1.shape[:2], self.num_heads, self.head_dim
 
-        print(f"grid_sizes: {grid_sizes}, freqs: {freqs.shape}, seq_lens: {seq_lens}")
-
         # query, key, value function
         def qkv_fn(x):
             q = self.norm_q(self.q(x)).view(b, s, n, d)
@@ -67,9 +65,8 @@ class PairedWanSelfAttention(nn.Module):
             return q, k, v
 
         q1, k1, v1 = qkv_fn(x1) # [B, F*H*W, n, d]
-        # q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
-        # q_addit, k_addit, v_addit = qkv_fn(addit_context) # [B, L_addit, n, d]
-
+        q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
+        
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
             k=rope_apply(k1, grid_sizes, freqs),
@@ -77,34 +74,30 @@ class PairedWanSelfAttention(nn.Module):
             k_lens=seq_lens,
             window_size=self.window_size) # [B, F*H*W, n, d]
         
-        # x2_2 = flash_attention(
-        #     q=rope_apply(q2, grid_sizes, freqs),
-        #     k=rope_apply(k2, grid_sizes, freqs),
-        #     v=v2,
-        #     k_lens=seq_lens,
-        #     window_size=self.window_size)
-        
-        # x2 = 0.5 * (x1 + x2_2)  # [B, F*H*W, n, d]
+        x2 = flash_attention(
+            q=rope_apply(q2, grid_sizes, freqs),
+            k=rope_apply(k2, grid_sizes, freqs),
+            v=v2,
+            k_lens=seq_lens,
+            window_size=self.window_size)
        
         # output
         x1 = x1.flatten(2)
         x1 = self.o(x1)
 
-        x2 = x1
-
-        # x2 = x2.flatten(2)
-        # x2 = self.o(x2)
+        x2 = x2.flatten(2)
+        x2 = self.o(x2)
         return x1, x2
 
 
 class PairedWanT2VCrossAttention(WanSelfAttention):
 
-    def forward(self, x1, x2, context1, context2, addit_context, context_lens, save_tensors_dir=None, should_addit=False):
+    def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False):
         r"""
         Args:
             x1, x2(Tensor): Shape [B, L1, C]
             context1, context2(Tensor): Shape [B, L2, C]
-            addit_context(Tensor): Shape [B, L3, C]
+            edit_context(Tensor): Shape [B, L3, C]
             context_lens(Tensor): Shape [B]
         """
         b, n, d = x1.size(0), self.num_heads, self.head_dim
@@ -121,13 +114,13 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         k2 = self.norm_k(self.k(x2)).view(b, -1, n, d)
         v2 = self.v(x2).view(b, -1, n, d)
         
-        q_addit = self.norm_q(self.q(addit_context)).view(b, -1, n, d)
-        k_addit = self.norm_k(self.k(addit_context)).view(b, -1, n, d)
-        v_addit = self.v(addit_context).view(b, -1, n, d)
+        q_edit = self.norm_q(self.q(edit_context)).view(b, -1, n, d)
+        k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
+        v_edit = self.v(edit_context).view(b, -1, n, d)
 
-        subject_mask = q_addit # compute_subject_mask(q1, k_context1, subject_token_index=1)
+        # subject_mask = q_edit # compute_subject_mask(q1, k_context1, subject_token_index=1)
 
-        # save q1, q2, k1, k2, k_addit, v1, v2, v_addit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
+        # save q1, q2, k1, k2, k_edit, v1, v2, v_edit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
         if save_tensors_dir is not None:
             tensors_dict = {
                 'q1': q1, 
@@ -135,12 +128,12 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
                 'k1': k1, 
                 'k2': k2,
                 'k_context1': k_context1, 
-                'k_addit': k_addit,
+                'k_edit': k_edit,
                 'v1': v1, 
                 'v2': v2, 
                 'v_context1': v_context1, 
-                'v_addit': v_addit,
-                'subject_mask': subject_mask
+                'v_edit': v_edit,
+                # 'subject_mask': subject_mask
             }
             save_tensors(save_tensors_dir, tensors_dict)
 
@@ -148,25 +141,12 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         # compute attention
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
         # x2_1 = flash_attention(q2, k1, v1) 
-        if not should_addit:
-            print(f"should_addit is False, copying attention from x1")
+        if not should_edit:
+            print(f"should_edit is False, copying attention from x1")
             x2 = x1.clone()
         else:
-            print(f"should_addit is True, computing attention for x2")
-            # concatenate ks and vs
-            Q2 = q2
-            K2 = k_addit
-            V2 = v_addit
-            # print(f"Q2 shape: {Q2.shape}, K2 shape: {K2.shape}, V2 shape: {V2.shape}")
-            x2_addit = flash_attention(Q2, K2, V2) # [b, F*W*H, n, d]
-            # now we have subject_mask of shape [b, F*W*H]
-            # apply subject_mask to x2_addit
-            x2_addit = x2_addit * subject_mask  # [b, F*W*H, n, d]
-
-            # x2_1 = x1.clone() * (1-subject_mask)  # [b, F*W*H, n, d]
-            # blending
-            x2 = x2_addit  # [b, F*W*H, n, d]
-
+            print(f"should_edit is True, computing attention for x2")
+            x2 = flash_attention(q2, k_edit, v_edit) # [b, F*W*H, n, d]
                         
         # output
         x1 = x1.flatten(2)
@@ -227,10 +207,11 @@ class PairedWanAttentionBlock(nn.Module):
         freqs,
         context1,
         context2,
-        addit_context,
+        edit_context,
+        subject_context,
         context_lens,
         save_tensors_dir=None,
-        should_addit=False
+        should_edit=False
     ):
         r"""
         Args:
@@ -249,16 +230,18 @@ class PairedWanAttentionBlock(nn.Module):
         y1, y2 = self.self_attn(
             self.norm1(x1).float() * (1 + e[1]) + e[0],
             self.norm1(x2).float() * (1 + e[1]) + e[0], 
-            addit_context,
-            seq_lens, grid_sizes,
+            grid_sizes,
+            edit_context,
+            subject_context,
+            seq_lens,
             freqs)
         with amp.autocast(dtype=torch.float32):
             x1 = x1 + y1 * e[2]
             x2 = x2 + y2 * e[2]
 
         # cross-attention & ffn function
-        def cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir, should_addit):
-            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), context1, context2, addit_context, context_lens, save_tensors_dir, should_addit=should_addit)
+        def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit):
+            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit=should_edit)
             x1 = x1 + _x1
             x2 = x2 + _x2
             y1 = self.ffn(self.norm2(x1).float() * (1 + e[4]) + e[3])
@@ -268,7 +251,7 @@ class PairedWanAttentionBlock(nn.Module):
                 x2 = x2 + y2 * e[5]
             return x1, x2
 
-        x1, x2 = cross_attn_ffn(x1, x2, context1, context2, addit_context, context_lens, e, save_tensors_dir, should_addit)
+        x1, x2 = cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit)
         return x1, x2
 
 class PairedWanModel(ModelMixin, ConfigMixin):
@@ -402,9 +385,10 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         seq_len,
         clip_fea=None,
         y1=None, y2=None,
-        addit_context=None,
+        edit_context=None,
+        subject_context=None,
         save_tensors_dir=None,
-        should_addit=False
+        should_edit=False
     ):
         r"""
         Forward pass through the diffusion model
@@ -422,8 +406,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
                 CLIP image features for image-to-video mode or first-last-frame-to-video mode
             y1, y2 (List[Tensor], *optional*):
                 Conditional video inputs for image-to-video mode, same shape as x
-            addit_context (Tensor, *optional*):
-                List of additional context embeddings, shape [L_addit, C]
+            edit_context (Tensor, *optional*):
+                List of additional context embeddings, shape [L_edit, C]
 
         Returns:
             List[Tensor]:
@@ -486,12 +470,20 @@ class PairedWanModel(ModelMixin, ConfigMixin):
                     [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
                 for u in context2
             ]))
-        if addit_context is not None:
-            addit_context = self.text_embedding(
+        if edit_context is not None:
+            edit_context = self.text_embedding(
                 torch.stack([
                     torch.cat(
                         [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
-                    for u in addit_context
+                    for u in edit_context
+                ]))
+            
+        if subject_context is not None:
+            subject_context = self.text_embedding(
+                torch.stack([
+                    torch.cat(
+                        [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
+                    for u in subject_context
                 ]))
 
         if clip_fea is not None:
@@ -507,17 +499,18 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             freqs=self.freqs,
             context1=context1,
             context2=context2,
-            addit_context=addit_context,
+            edit_context=edit_context,
+            subject_context=subject_context,
             context_lens=context_lens,
             save_tensors_dir=None,
-            should_addit=should_addit)
+            should_edit=should_edit)
 
         for i, block in enumerate(self.blocks):
             if i == len(self.blocks) - 1:
-                print('=== last block ===')
                 kwargs['save_tensors_dir'] = save_tensors_dir
-            print(i, kwargs['save_tensors_dir'])
+
             x1, x2 = block(x1, x2, **kwargs)
+
             if i == len(self.blocks) - 1:
                 kwargs['save_tensors_dir'] = None
 

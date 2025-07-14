@@ -266,10 +266,16 @@ def _parse_args():
         help="Whether to generate paired video for T2V task. If set to True, the output will be a tuple of (video, paired_video)."
     )
     parser.add_argument(
-        "--addit_prompt",
+        "--edit_prompt",
         type=str,
         default=None,
-        help="The addit prompt. Must be used with paired_generation=True."
+        help="The edit prompt. Must be used with paired_generation=True."
+    )
+    parser.add_argument(
+        "--subject_prompt",
+        type=str,
+        default="subject",
+        help="The subject prompt. Must be used with paired_generation=True."
     )
     parser.add_argument(
         "--experiment_name",
@@ -312,7 +318,8 @@ def generate(args):
 
     encoded_params = encode_params(
         args.prompt, args.task, args.size, args.ulysses_size, args.ring_size,
-        addit_prompt=args.addit_prompt, experiment_name=args.experiment_name)
+        edit_prompt=args.edit_prompt, subject_prompt=args.subject_prompt, 
+        experiment_name=args.experiment_name)
 
     if args.offload_model is None:
         args.offload_model = False if world_size > 1 else True
@@ -453,7 +460,8 @@ def generate(args):
                 guide_scale=args.sample_guide_scale,
                 seed=args.base_seed,
                 offload_model=args.offload_model,
-                addit_prompt=args.addit_prompt,
+                edit_prompt=args.edit_prompt,
+                subject_prompt=args.subject_prompt,
                 encoded_params=encoded_params)
 
     elif "i2v" in args.task:
