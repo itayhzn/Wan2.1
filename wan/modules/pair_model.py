@@ -72,9 +72,9 @@ class PairedWanSelfAttention(nn.Module):
 
         # query, key, value function
         def qkv_fn(x):
-            q = self.norm_q(self.q(x)).view(b, s, n, d)
-            k = self.norm_k(self.k(x)).view(b, s, n, d)
-            v = self.v(x).view(b, s, n, d)
+            q = self.norm_q(self.q(x)).view(b, -1, n, d)
+            k = self.norm_k(self.k(x)).view(b, -1, n, d)
+            v = self.v(x).view(b, -1, n, d)
             return q, k, v
 
         q1, k1, v1 = qkv_fn(x1) # [B, F*H*W, n, d]
