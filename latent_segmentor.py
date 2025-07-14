@@ -51,16 +51,19 @@ class LatentSegmentor:
         subject_masks = self._compute_subject_mask(video_dir, points, labels)
         delete_video_dir(video_dir)
 
-        # downsample the masks to match latent resolution
+        # downsample the masks in time (F -> f)
+        f_stride = video_frame_cnt // latent_frame_cnt
+        subject_masks = {
+            frame_idx/f_stride: mask 
+            for frame_idx, mask in subject_masks.items() 
+            if frame_idx % f_stride == 0
+        } 
+        
+        # downsample the masks in space (H,W -> h,w)
         downsampled_masks = {}
-        idx = 0
         for frame_idx, mask in subject_masks.items():
-            if frame_idx % (video_frame_cnt // latent_frame_cnt) == 0: # downsampling F -> f
-                continue
-            # downsampling H,W -> h,w
             downsampled_mask = cv2.resize(mask.astype(np.float32), (latents[0].shape[-1], latents[0].shape[-2]), interpolation=cv2.INTER_LINEAR)
-            downsampled_masks[idx] = downsampled_mask
-            idx += 1
+            downsampled_masks[frame_idx] = downsampled_mask
 
         return downsampled_masks
     
