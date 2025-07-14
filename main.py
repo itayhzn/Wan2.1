@@ -7,12 +7,11 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
 
-from utils import compute_subject_mask_on_latent, read_video
+from utils import read_video
 from wan.modules.vae import WanVAE
 
 from latent_segmentor import LatentSegmentor
 from sam2.sam2_video_predictor import SAM2VideoPredictor
-
 
 # device = torch.device("cuda")
 device = torch.device('cpu')
