@@ -81,9 +81,10 @@ class PairedWanSelfAttention(nn.Module):
         q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
         q_subject, k_subject, v_subject = qkv_fn(subject_context) # [B, L_subject, n, d]
         
+        ###########################################
         # compute subject mask
-        q_1_3 = q1[1, :, 3, :] # [L1, d]
-        k_subject_3 = k_subject[1, :, 3, :] # [L2, d]
+        q_1_3 = q1[0, :, 3, :] # [L1, d]
+        k_subject_3 = k_subject[0, :, 3, :] # [L2, d]
         attention_map = q_1_3 @ k_subject_3.transpose(-2, -1)  # [L1, L2]
         attention_map = attention_map[:, 0] # [L1] 
         # reshape to [F, H, W]
@@ -93,6 +94,7 @@ class PairedWanSelfAttention(nn.Module):
         # get i,j of max and min values in first_frame_map
         max_i, max_j = torch.argmax(first_frame_map).item() // grid_sizes[0, 2], torch.argmax(first_frame_map).item() % grid_sizes[0, 2]
         min_i, min_j = torch.argmin(first_frame_map).item() // grid_sizes[0, 2], torch.argmin(first_frame_map).item() % grid_sizes[0, 2]
+        ###########################################
 
         print(f"max_i: {max_i}, max_j: {max_j}, min_i: {min_i}, min_j: {min_j}")
 
