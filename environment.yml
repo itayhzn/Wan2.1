@@ -26,3 +26,4 @@ dependencies:
       - gradio>=5.0.0
       - huggingface_hub
       - opencv-python
+      - uuid
