@@ -119,7 +119,7 @@ class PairedWanSelfAttention(nn.Module):
         return x1, x2
 
 
-class PairedWanT2VCrossAttention(WanSelfAttention):
+class PairedWanT2VCrossAttention(PairedWanSelfAttention):
 
     def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False):
         r"""
@@ -185,6 +185,8 @@ class PairedWanT2VCrossAttention(WanSelfAttention):
         x2 = self.o(x2)
 
         return x1, x2
+    
+    
 
 class PairedWanAttentionBlock(nn.Module):
 
@@ -419,9 +421,9 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
         self.latent_segmentor = segmentor
         for block in self.blocks:
-            if isinstance(block.self_attn, PairedWanSelfAttention):
+            if hasattr(block.self_attn, 'set_latent_segmentor'):
                 block.self_attn.set_latent_segmentor(segmentor)
-            if isinstance(block.cross_attn, PairedWanT2VCrossAttention):
+            if hasattr(block.cross_attn, 'set_latent_segmentor'):
                 block.cross_attn.set_latent_segmentor(segmentor)
 
     def forward(
