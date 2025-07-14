@@ -13,6 +13,7 @@ dependencies:
   - ftfy
   - imageio-ffmpeg
   - numpy>=1.23.5,<2
+  - matplotlib
   - pip
   - pip:
       - opencv-python>=4.9.0.80
@@ -24,3 +25,5 @@ dependencies:
       - flash-attn
       - gradio>=5.0.0
       - huggingface_hub
+      - opencv-python
+      - uuid

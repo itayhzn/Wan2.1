@@ -1,41 +1,74 @@
 import os
+# if using Apple MPS, fall back to CPU for unsupported ops
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+import numpy as np
 import torch
-from datetime import datetime
+import matplotlib.pyplot as plt
+from PIL import Image
+import cv2
 
-def read_videojam_prompts():
-    """
-    Read prompts from the videojam_prompts.txt file.
-    Returns a list of prompts.
-    """
-    with open("videojam_prompts.txt", "r") as f:
-        prompts = f.readlines()
-    return [prompt.strip() for prompt in prompts if prompt.strip()]
+from utils import read_video
+from wan.modules.vae import WanVAE
+
+from latent_segmentor import LatentSegmentor
+from sam2.sam2_video_predictor import SAM2VideoPredictor
+
+# device = torch.device("cuda")
+device = torch.device('cpu')
+# torch.autocast("cuda", dtype=torch.bfloat16).__enter__()
+# if torch.cuda.get_device_properties(0).major >= 8:
+#     torch.backends.cuda.matmul.allow_tf32 = True
+#     torch.backends.cudnn.allow_tf32 = True
+
 
 if __name__ == "__main__":
-    experiment_name = "selfx2eqx1"
+    device = 'cuda'
+    vae = WanVAE(
+            vae_pth=os.path.join('Wan2.1-T2V-1.3B', 'Wan2.1_VAE.pth'),
+            device=device)
+    
+    video_path = "generated/20250709_072402_attn_head_4_subject_mask_t2v-1.3B_832*480_1_1_A_small_brown_dog_playing_with_ADDIT_A_white_kitten.mp4"  # Path to your video file
 
-    datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    video = torch.tensor(np.array(read_video(video_path))) # list of [H, W, C]
+    video = video.permute(3, 0, 1, 2).unsqueeze(0).to(device)  # [F, H, W, C] -> [1, C, F, H, W]
+    video = video.float() / 255.0 # Convert to float and normalize to [0, 1]
+    
+    latents = vae.encode(video)  # [1, c, f, h, w]
+    
+    points = np.array([[650, 300], [300, 300]])
+    labels = np.array([1, 0])  # 1 for positive point,
 
-    prompts = read_videojam_prompts()
-    [
-        "Two ibexes navigating a rocky hillside. They are walking down a steep slope covered in small rocks and dirt. In the background, there are more rocks and some greenery visible through an opening in the rocks.",
-        "Athletic man doing gymnastics elements on horizontal bar in city park. Male sportsmen perform strength exercises outdoors.",
-        "A small dog playing with a red ball on a hardwood floor.",
-        "A white kitten playing with a ball.",
-        "A woman enjoying the fun of hula hooping."
-    ]
+    latent_height, latent_width = latents[0].shape[-2], latents[0].shape[-1]
+    video_height, video_width = video.shape[-2], video.shape[-1]
+    
+    points = points * np.array([latent_width / video_width, latent_height / video_height])
 
-    seeds = [ '1024' ]
+    # done with preprocessing, should only use: latents, points, labels from now on
 
-    addit_prompt =  "A cat." # "A cat." # "A red octopus moving its tentacles around."
+    segmentor = LatentSegmentor(vae=vae, device=device)
+    subject_masks = segmentor.compute_subject_mask(latents, points, labels)
 
-    # redirect output to a file
-    with open(f"jobs-out-err/{datetime_str}_{experiment_name}.out", "w") as f:
-        os.dup2(f.fileno(), 1)
-    # redirect error output to a file
-    with open(f"jobs-out-err/{datetime_str}_{experiment_name}.err", "w") as f:
-        os.dup2(f.fileno(), 2)
+    latent_to_visualize = latents[0][:3].cpu().permute(1,2,3,0)  # [f, h, w, 3]
+    latent_to_visualize = ((latent_to_visualize - latent_to_visualize.min())/(latent_to_visualize.max() - latent_to_visualize.min())).float().numpy()  # Normalize to [0, 1]
 
-    os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}" --seeds {' '.join(seeds)} --paired_generation "True" --addit_prompt "{addit_prompt}" --experiment_name "{experiment_name}" """)
+    os.makedirs('sam2_mask_example', exist_ok=True)
 
-    # os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}" --seeds {' '.join(seeds)} --paired_generation "True" --addit_prompt "{addit_prompt}" --experiment_name "{experiment_name}" """)
+    for frame_idx, frame in enumerate(latent_to_visualize):
+        # frame dim [C, H, W]
+        mask = subject_masks[frame_idx]
+        subject = np.multiply(frame, mask[..., np.newaxis])
+        background = np.multiply(frame, (1 - mask[..., np.newaxis]))
+        
+        plt.figure(figsize=(9, 6))
+        plt.title(f"subject {frame_idx}")
+        plt.imshow(subject)
+        plt.savefig(f"sam2_mask_example/subject_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        # close
+        plt.close()
+
+        plt.figure(figsize=(9, 6))
+        plt.title(f"background {frame_idx}")
+        plt.imshow(background)
+        plt.savefig(f"sam2_mask_example/background_{frame_idx:04d}.jpg", bbox_inches='tight', pad_inches=0.1)
+        # close
+        plt.close()
