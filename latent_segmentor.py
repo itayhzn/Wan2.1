@@ -15,10 +15,7 @@ from utils import save_video_tensor_in_dir, delete_video_dir
 class LatentSegmentor:
     def __init__(self, vae=None, sam2=None, device='cuda'):
         self.sam2 = sam2 if sam2 is not None else SAM2VideoPredictor.from_pretrained("facebook/sam2-hiera-tiny")
-        self.vae = vae if vae is not None else WanVAE(
-            vae_pth=os.path.join('Wan2.1-T2V-1.3B', 'Wan2.1_VAE.pth'),
-            device=torch.device(device)
-            )
+        self.vae = vae
         self.state_initialized = False
 
     def compute_subject_mask(self, latents, points, labels):

@@ -26,6 +26,7 @@ from .utils.fm_solvers import (
 from .utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 
 from utils import save_tensors
+from latent_segmentor import LatentSegmentor
 
 class PairedWanT2V:
 
@@ -84,9 +85,16 @@ class PairedWanT2V:
             vae_pth=os.path.join(checkpoint_dir, config.vae_checkpoint),
             device=self.device)
 
+        self.latent_segmentor = LatentSegmentor(
+            vae=self.vae,
+            sam2=None, 
+            device=self.device)
+
         logging.info(f"Creating WanModel from {checkpoint_dir}")
         self.model = PairedWanModel.from_pretrained(checkpoint_dir)
         self.model.eval().requires_grad_(False)
+        
+        self.model.set_latent_segmentor(self.latent_segmentor)
 
         if use_usp:
             from xfuser.core.distributed import get_sequence_parallel_world_size

@@ -15,6 +15,7 @@ from datetime import datetime
 import os
 
 from utils import save_tensors
+from latent_segmentor import LatentSegmentor
 
 __all__ = ['WanModel']
 
@@ -38,6 +39,7 @@ class PairedWanSelfAttention(nn.Module):
         self.window_size = window_size
         self.qk_norm = qk_norm
         self.eps = eps
+        self.latent_segmentor = None
 
         # layers
         self.q = nn.Linear(dim, dim)
@@ -46,6 +48,17 @@ class PairedWanSelfAttention(nn.Module):
         self.o = nn.Linear(dim, dim)
         self.norm_q = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
         self.norm_k = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
+
+    def set_latent_segmentor(self, segmentor: LatentSegmentor):
+        r"""
+        Set the latent segmentor for the self-attention module.
+
+        Args:
+            segmentor (LatentSegmentor):
+                An instance of LatentSegmentor to be used for subject mask computation.
+        """
+        assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
+        self.latent_segmentor = segmentor
 
     def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs):
         r"""
@@ -66,7 +79,23 @@ class PairedWanSelfAttention(nn.Module):
 
         q1, k1, v1 = qkv_fn(x1) # [B, F*H*W, n, d]
         q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
+        q_subject, k_subject, v_subject = qkv_fn(subject_context) # [B, L_subject, n, d]
         
+        # compute subject mask
+        q_1_3 = q1[1, :, 3, :] # [L1, d]
+        k_subject_3 = k_subject[1, :, 3, :] # [L2, d]
+        attention_map = q_1_3 @ k_subject_3.transpose(-2, -1)  # [L1, L2]
+        attention_map = attention_map[:, 0] # [L1] 
+        # reshape to [F, H, W]
+        print(f"grid_sizes: {grid_sizes}, attention_map shape: {attention_map.shape}")
+        attention_map = attention_map.view(grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2])  # [F, H, W]
+        first_frame_map = attention_map[0, :, :]  # [H, W]
+        # get i,j of max and min values in first_frame_map
+        max_i, max_j = torch.argmax(first_frame_map).item() // grid_sizes[0, 2], torch.argmax(first_frame_map).item() % grid_sizes[0, 2]
+        min_i, min_j = torch.argmin(first_frame_map).item() // grid_sizes[0, 2], torch.argmin(first_frame_map).item() % grid_sizes[0, 2]
+
+        print(f"max_i: {max_i}, max_j: {max_j}, min_i: {min_i}, min_j: {min_j}")
+
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
             k=rope_apply(k1, grid_sizes, freqs),
@@ -376,6 +405,24 @@ class PairedWanModel(ModelMixin, ConfigMixin):
 
         # initialize weights
         self.init_weights()
+
+        self.latent_segmentor = None
+    
+    def set_latent_segmentor(self, segmentor: LatentSegmentor):
+        r"""
+        Set the latent segmentor for the model.
+
+        Args:
+            segmentor (LatentSegmentor):
+                An instance of LatentSegmentor to be used for subject mask computation.
+        """
+        assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
+        self.latent_segmentor = segmentor
+        for block in self.blocks:
+            if isinstance(block.self_attn, PairedWanSelfAttention):
+                block.self_attn.set_latent_segmentor(segmentor)
+            if isinstance(block.cross_attn, PairedWanT2VCrossAttention):
+                block.cross_attn.set_latent_segmentor(segmentor)
 
     def forward(
         self,
