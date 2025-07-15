@@ -102,11 +102,15 @@ class PairedWanSelfAttention(nn.Module):
 
             print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}')
 
-            # self.latent_segmentor.compute_subject_mask(
-            #     latents=x1,
-            #     points=points,
-            #     labels=labels
-            # )
+            f,h,w = grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2]
+            latents1_for_segmentor = x1.permute(0,2,1).view(x1.size(0), x1.size(2), f, h, w)
+            
+            masks = self.latent_segmentor.compute_subject_mask(
+                latents=latents1_for_segmentor,
+                points=points,
+                labels=labels
+            )
+
         ###########################################
 
         x1 = flash_attention(
