@@ -82,21 +82,32 @@ class PairedWanSelfAttention(nn.Module):
         q_subject, k_subject, v_subject = qkv_fn(subject_context) # [B, L_subject, n, d]
         
         ###########################################
-        # compute subject mask
-        q_1_3 = q1[0, :, 3, :] # [L1, d]
-        k_subject_3 = k_subject[0, :, 3, :] # [L2, d]
-        attention_map = q_1_3 @ k_subject_3.transpose(-2, -1)  # [L1, L2]
-        attention_map = attention_map[:, 0] # [L1] 
-        # reshape to [F, H, W]
-        print(f"grid_sizes: {grid_sizes}, attention_map shape: {attention_map.shape}")
-        attention_map = attention_map.view(grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2])  # [F, H, W]
-        first_frame_map = attention_map[0, :, :]  # [H, W]
-        # get i,j of max and min values in first_frame_map
-        max_i, max_j = torch.argmax(first_frame_map).item() // grid_sizes[0, 2], torch.argmax(first_frame_map).item() % grid_sizes[0, 2]
-        min_i, min_j = torch.argmin(first_frame_map).item() // grid_sizes[0, 2], torch.argmin(first_frame_map).item() % grid_sizes[0, 2]
-        ###########################################
+        if self.latent_segmentor is not None:
+            # compute subject mask
+            q_1_3 = q1[0, :, 3, :] # [L1, d]
+            k_subject_3 = k_subject[0, :, 3, :] # [L2, d]
+            attention_map = q_1_3 @ k_subject_3.transpose(-2, -1)  # [L1, L2]
+            attention_map = attention_map[:, 0] # [L1] 
+            
+            # reshape to [F, H, W]
+            attention_map = attention_map.view(grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2])  # [F, H, W]
+            first_frame_map = attention_map[0, :, :]  # [H, W]
+            
+            # get i,j of max and min values in first_frame_map
+            max_i, max_j = torch.argmax(first_frame_map).item() // grid_sizes[0, 2], torch.argmax(first_frame_map).item() % grid_sizes[0, 2]
+            min_i, min_j = torch.argmin(first_frame_map).item() // grid_sizes[0, 2], torch.argmin(first_frame_map).item() % grid_sizes[0, 2]
 
-        print(f"max_i: {max_i}, max_j: {max_j}, min_i: {min_i}, min_j: {min_j}")
+            points = torch.tensor([[max_j, max_i], [min_j, min_i]], dtype=torch.float32)  # [2, 2]
+            labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
+
+            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}')
+
+            # self.latent_segmentor.compute_subject_mask(
+            #     latents=x1,
+            #     points=points,
+            #     labels=labels
+            # )
+        ###########################################
 
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
@@ -566,11 +577,11 @@ class PairedWanModel(ModelMixin, ConfigMixin):
                 kwargs['save_tensors_dir'] = None
 
         # head
-        x1 = self.head(x1, e)
+        x1 = self.head(x1, e) 
         x2 = self.head(x2, e)
 
         # unpatchify
-        x1 = self.unpatchify(x1, grid_sizes)
+        x1 = self.unpatchify(x1, grid_sizes) 
         x2 = self.unpatchify(x2, grid_sizes)
         return [u.float() for u in x1], [u.float() for u in x2]
 
