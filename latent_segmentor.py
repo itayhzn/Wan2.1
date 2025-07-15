@@ -30,8 +30,7 @@ class LatentSegmentor:
             labels: np.array of shape [N] where N is the number of points
                     each label is 1 for positive point, 0 for negative point
         Returns:
-            masks:  dict of shape {frame_idx: mask} where mask is a numpy array of shape [h, w]
-                    1 for subject, 0 for background
+            masks:  numpy array of shape [f, h, w]
         """
         # decode the latent to get video frames and save them in dir
         videos = self.vae.decode(latents)  # [1, c, f, h, w]
@@ -62,7 +61,13 @@ class LatentSegmentor:
             downsampled_mask = cv2.resize(mask.astype(np.float32), (latents[0].shape[-1], latents[0].shape[-2]), interpolation=cv2.INTER_LINEAR)
             downsampled_masks[frame_idx] = downsampled_mask
 
-        return downsampled_masks
+        # convert masks to numpy arrays
+        # Convert masks to numpy array of shape [f, h, w]
+        masks = np.array([
+            downsampled_masks[frame_idx] for frame_idx in sorted(downsampled_masks.keys())
+        ], dtype=np.float32)
+
+        return masks
     
     def _compute_subject_mask(self, video_dir, points, labels):
         if self.state_initialized:
