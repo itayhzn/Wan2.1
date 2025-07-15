@@ -266,7 +266,7 @@ class PairedWanT2V:
             arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context}
             arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null}
 
-            edit_timesteps = timesteps[7:]
+            edit_timesteps = timesteps[-1:]
 
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
