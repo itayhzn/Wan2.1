@@ -102,7 +102,7 @@ class PairedWanSelfAttention(nn.Module):
             points = torch.tensor([[max_j, max_i], [min_j, min_i]], dtype=torch.float32)  # [2, 2]
             labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
 
-            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}')
+            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}, original_x1[0].shape: {original_x1[0].shape}, original_x2[0].shape: {original_x2[0].shape}')
 
             f,h,w = grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2]
             
@@ -192,10 +192,8 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
         # x2_1 = flash_attention(q2, k1, v1) 
         if not should_edit:
-            print(f"should_edit is False, copying attention from x1")
             x2 = x1.clone()
         else:
-            print(f"should_edit is True, computing attention for x2")
             x2 = flash_attention(q2, k_edit, v_edit) # [b, F*W*H, n, d]
                         
         # output
@@ -497,6 +495,9 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         if self.freqs.device != device:
             self.freqs = self.freqs.to(device)
 
+        original_x1 = x1
+        original_x2 = x2
+
         if y1 is not None:
             x1 = [torch.cat([u, v], dim=0) for u, v in zip(x1, y1)]
         if y2 is not None:
@@ -504,10 +505,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x1 = [self.patch_embedding(u.unsqueeze(0)) for u in x1]
-        x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]
-
-        original_x1 = x1
-        original_x2 = x2      
+        x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]      
 
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x1])
