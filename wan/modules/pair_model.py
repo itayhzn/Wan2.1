@@ -104,7 +104,7 @@ class PairedWanSelfAttention(nn.Module):
 
             f,h,w = grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2]
             
-            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}, original_x1.shape: {original_x1.shape if original_x1 is not None else None}, original_x2.shape: {original_x2.shape if original_x2 is not None else None}')
+            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}, original_x1[0].shape: {original_x1[0].shape if original_x1 is not None else None}, original_x2[0].shape: {original_x2[0].shape if original_x2 is not None else None}')
 
             masks = self.latent_segmentor.compute_subject_mask(
                 latents=original_x1,
