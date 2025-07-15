@@ -112,7 +112,7 @@ class PairedWanSelfAttention(nn.Module):
                 labels=labels
             )
 
-            save_tensors('tensors', {'masks': masks})
+            save_tensors('tensors', {'masks': torch.Tensor(masks)})
 
         ###########################################
 
