@@ -104,6 +104,8 @@ class PairedWanSelfAttention(nn.Module):
 
             f,h,w = grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2]
             
+            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}, original_x1.shape: {original_x1.shape if original_x1 is not None else None}, original_x2.shape: {original_x2.shape if original_x2 is not None else None}')
+
             masks = self.latent_segmentor.compute_subject_mask(
                 latents=original_x1,
                 points=points,
@@ -285,7 +287,9 @@ class PairedWanAttentionBlock(nn.Module):
             edit_context,
             subject_context,
             seq_lens,
-            freqs)
+            freqs, 
+            original_x1=original_x1,
+            original_x2=original_x2)
         with amp.autocast(dtype=torch.float32):
             x1 = x1 + y1 * e[2]
             x2 = x2 + y2 * e[2]
