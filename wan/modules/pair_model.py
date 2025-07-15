@@ -60,7 +60,7 @@ class PairedWanSelfAttention(nn.Module):
         assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
         self.latent_segmentor = segmentor
 
-    def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs, original_x1=None, original_x2=None, should_edit=False):
+    def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs, original_x1=None, original_x2=None, should_edit=False, return_dict={}):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -82,7 +82,9 @@ class PairedWanSelfAttention(nn.Module):
         q_subject, k_subject, v_subject = qkv_fn(subject_context) # [B, L_subject, n, d]
         
         ###########################################
-        if should_edit and self.latent_segmentor is not None:
+        if should_edit \
+            and self.latent_segmentor is not None \
+            and 'masks' not in return_dict:
             # compute subject mask
             q_1_3 = q1[0, :, 3, :] # [L1, d]
             k_subject_3 = k_subject[0, :, 3, :] # [L2, d]
@@ -111,6 +113,7 @@ class PairedWanSelfAttention(nn.Module):
             )
 
             save_tensors('tensors', {'masks': torch.Tensor(masks)})
+            return_dict['masks'] = masks
 
         ###########################################
 
@@ -139,7 +142,7 @@ class PairedWanSelfAttention(nn.Module):
 
 class PairedWanT2VCrossAttention(PairedWanSelfAttention):
 
-    def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False, original_x1=None, original_x2=None):
+    def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False, original_x1=None, original_x2=None, return_dict={}):
         r"""
         Args:
             x1, x2(Tensor): Shape [B, L1, C]
@@ -262,7 +265,8 @@ class PairedWanAttentionBlock(nn.Module):
         save_tensors_dir=None,
         should_edit=False,
         original_x1=None,
-        original_x2=None
+        original_x2=None, 
+        return_dict={}
     ):
         r"""
         Args:
@@ -288,14 +292,15 @@ class PairedWanAttentionBlock(nn.Module):
             freqs, 
             original_x1=original_x1,
             original_x2=original_x2,
-            should_edit=should_edit)
+            should_edit=should_edit, 
+            return_dict=return_dict)
         with amp.autocast(dtype=torch.float32):
             x1 = x1 + y1 * e[2]
             x2 = x2 + y2 * e[2]
 
         # cross-attention & ffn function
-        def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1=None, original_x2=None):
-            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit=should_edit, original_x1=original_x1, original_x2=original_x2)
+        def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, return_dict):
+            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit, original_x1, original_x2, return_dict)
             x1 = x1 + _x1
             x2 = x2 + _x2
             y1 = self.ffn(self.norm2(x1).float() * (1 + e[4]) + e[3])
@@ -305,7 +310,7 @@ class PairedWanAttentionBlock(nn.Module):
                 x2 = x2 + y2 * e[5]
             return x1, x2
 
-        x1, x2 = cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1=original_x1, original_x2=original_x2)
+        x1, x2 = cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, return_dict)
         return x1, x2
 
 class PairedWanModel(ModelMixin, ConfigMixin):
@@ -495,14 +500,14 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         if y1 is not None:
             x1 = [torch.cat([u, v], dim=0) for u, v in zip(x1, y1)]
         if y2 is not None:
-            x2 = [torch.cat([u, v], dim=0) for u, v in zip(x2, y2)]
-
-        original_x1 = x1
-        original_x2 = x2        
+            x2 = [torch.cat([u, v], dim=0) for u, v in zip(x2, y2)]  
 
         # embeddings
         x1 = [self.patch_embedding(u.unsqueeze(0)) for u in x1]
         x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]
+
+        original_x1 = x1
+        original_x2 = x2      
 
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x1])
@@ -565,6 +570,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             context1 = torch.concat([context_clip, context1], dim=1)
             context2 = torch.concat([context_clip, context2], dim=1)
 
+        return_dict = {}
+
         # arguments
         kwargs = dict(
             e=e0,
@@ -579,7 +586,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             save_tensors_dir=None,
             should_edit=should_edit,
             original_x1=original_x1,
-            original_x2=original_x2)
+            original_x2=original_x2,
+            return_dict=return_dict)
 
         for i, block in enumerate(self.blocks):
             if i == len(self.blocks) - 1:

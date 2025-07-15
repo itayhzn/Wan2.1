@@ -272,10 +272,11 @@ def _parse_args():
         help="The edit prompt. Must be used with paired_generation=True."
     )
     parser.add_argument(
-        "--subject_prompt",
+        "--subject_prompts",
         type=str,
-        default="subject",
-        help="The subject prompt. Must be used with paired_generation=True."
+        nargs='*',
+        default=[],
+        help="The subject prompts. Must be used with paired_generation=True."
     )
     parser.add_argument(
         "--experiment_name",
@@ -678,9 +679,10 @@ def generate(args):
 
 if __name__ == "__main__":
     args = _parse_args()
-    for prompt in args.prompts:
+    for prompt, subject_prompt in zip(args.prompts, args.subject_prompts):
         for seed in args.seeds:
             args.prompt = prompt
+            args.subject_prompt = subject_prompt
             args.base_seed = seed
             logging.info(f"Generating with seed {args.base_seed} ...")
             generate(args)
