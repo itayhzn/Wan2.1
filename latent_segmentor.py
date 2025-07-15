@@ -37,6 +37,11 @@ class LatentSegmentor:
         video = videos[0]  # [c, f, h, w]
         video_dir = str(uuid.uuid4().hex)  # create a unique directory name
         
+        if isinstance(points, torch.Tensor):
+            points = points.cpu().numpy()
+        if isinstance(labels, torch.Tensor):
+            labels = labels.cpu().numpy()
+        
         # translate points from latent space to video space
         latent_height, latent_width, latent_frame_cnt = latents[0].shape[-2], latents[0].shape[-1], latents[0].shape[-3]
         video_height, video_width, video_frame_cnt = video.shape[-2], video.shape[-1], video.shape[-3]
