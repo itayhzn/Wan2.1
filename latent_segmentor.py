@@ -16,7 +16,7 @@ class LatentSegmentor:
     def __init__(self, vae=None, sam2=None, device='cuda'):
         self.sam2 = sam2 if sam2 is not None else SAM2VideoPredictor.from_pretrained("facebook/sam2-hiera-tiny")
         self.vae = vae
-        self.state_initialized = False
+        self.inference_state = None
 
     def compute_subject_mask(self, latents, points, labels):
         """
@@ -75,17 +75,16 @@ class LatentSegmentor:
         return masks
     
     def _compute_subject_mask(self, video_dir, points, labels):
-        if self.state_initialized:
-            self.sam2.reset_state(video_dir)
+        if self.inference_state is not None:
+            self.sam2._reset_tracking_results(self.inference_state)
         else:
-            inference_state = self.sam2.init_state(video_dir)
-            self.state_initialized = True
+            self.inference_state = self.sam2.init_state(video_dir)
         
         frame_idx = 0
         obj_id = 1
 
         _,  out_obj_ids, out_mask_logits = self.sam2.add_new_points_or_box(
-            inference_state=inference_state,
+            inference_state=self.inference_state,
             frame_idx=frame_idx,
             obj_id=obj_id,
             points=points,
@@ -93,7 +92,7 @@ class LatentSegmentor:
         )
 
         subject_masks = {}
-        for out_frame_idx, out_obj_ids, out_mask_logits in self.sam2.propagate_in_video(inference_state):
+        for out_frame_idx, out_obj_ids, out_mask_logits in self.sam2.propagate_in_video(self.inference_state):
             # Find the mask for our specific object ID
             for i, out_obj_id in enumerate(out_obj_ids):
                 if out_obj_id == obj_id:
