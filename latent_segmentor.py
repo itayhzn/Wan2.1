@@ -78,6 +78,7 @@ class LatentSegmentor:
             # points should be [W, H] and not [w, h], normalize by stride because they are used on original_x1 and not on x1
             points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [2, 2]
 
+            print(f"Points: {points}, Labels: {labels}")
 
             masks = self._compute_subject_mask_given_points(
                 latents=x,
