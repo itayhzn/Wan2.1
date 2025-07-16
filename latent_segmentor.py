@@ -93,7 +93,7 @@ class LatentSegmentor:
 
             # masks has shape [F, H, W], downsample the masks with stride to get [f,h,w]
             masks = masks[::stride[0], ::stride[1], ::stride[2]]
-            self.masks = torch.Tensor(masks)  # save masks for later use
+            self.masks = torch.Tensor([masks])  # save masks for later use
             return self.masks
 
     def _compute_subject_mask_given_points(self, latents, points, labels):

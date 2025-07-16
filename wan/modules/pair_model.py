@@ -81,14 +81,7 @@ class PairedWanSelfAttention(nn.Module):
         q2, k2, v2 = qkv_fn(x2) # [B, F*H*W, n, d]
         q_subject, k_subject, v_subject = qkv_fn(subject_context) # [B, L_subject, n, d]
         
-        ###########################################
-        if should_edit and self.latent_segmentor is not None:
-            masks = self.latent_segmentor.get_precomputed_masks()
-            if masks is None:
-                masks = self.latent_segmentor.compute_subject_mask(original_x1[0], q1, k_subject, grid_sizes)
-                save_tensors('tensors', {'masks': masks})
-
-        ###########################################
+        
 
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
@@ -96,13 +89,35 @@ class PairedWanSelfAttention(nn.Module):
             v=v1,
             k_lens=seq_lens,
             window_size=self.window_size) # [B, F*H*W, n, d]
+
         
-        x2 = flash_attention(
+        
+        ###########################################
+        if should_edit and self.latent_segmentor is not None:
+            masks = self.latent_segmentor.get_precomputed_masks()
+            if masks is None:
+                masks = self.latent_segmentor.compute_subject_mask(original_x1[0], q1, k_subject, grid_sizes)
+                # save_tensors('tensors', {'masks': masks})
+
+            masks = masks.view(1, -1, 1, 1)  # [1, F*H*W, 1, 1]
+
+            x2 = flash_attention(
+                q=rope_apply(q1, grid_sizes, freqs),
+                k=rope_apply(k2, grid_sizes, freqs),
+                v=v2,
+                k_lens=seq_lens,
+                window_size=self.window_size)
+
+            x2 = x2 * masks + x1 * (1 - masks)  # [B, F*H*W, n, d]
+        else:
+            x2 = flash_attention(
             q=rope_apply(q2, grid_sizes, freqs),
             k=rope_apply(k2, grid_sizes, freqs),
             v=v2,
             k_lens=seq_lens,
             window_size=self.window_size)
+
+        ###########################################
        
         # output
         x1 = x1.flatten(2)
