@@ -127,7 +127,7 @@ class PairedWanSelfAttention(nn.Module):
             # downsample the masks with stride to get [f,h,w]
             masks = masks[::stride[0], ::stride[1], ::stride[2]]
 
-            save_tensors('tensors', {'masks': torch.Tensor(masks)})
+            save_tensors('tensors', {'masks': torch.Tensor(masks), 'original_x1[0]': original_x1[0]})
             return_dict['masks'] = masks
 
         ###########################################
