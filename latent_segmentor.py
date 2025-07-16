@@ -29,13 +29,18 @@ class LatentSegmentor:
         """
         return self.masks
 
-    def sample_points(self, first_frame_map, w, h, N=4):
+    def sample_points(self, first_frame_map, w, h, N=1):
         first_frame_map = first_frame_map.clone()  # [h, w]
         max_value = first_frame_map.max()
         first_frame_map[first_frame_map < 0.35 * max_value] = 0
         points = []
         while len(points) < N and first_frame_map.numel() > 0:
-            positive_point_index = torch.argmax(first_frame_map).item()
+            # positive_point_index = torch.argmax(first_frame_map).item()
+            # normalize to probabilities
+            first_frame_map = first_frame_map / first_frame_map.sum()
+            # sample a point weighted on attention map
+            positive_point_index = torch.multinomial(first_frame_map.view(-1))
+
             pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
             points.append([pos_j, pos_i])
             
@@ -76,7 +81,7 @@ class LatentSegmentor:
             labels = torch.cat([torch.tensor([1]*pos_points.shape[0], dtype=torch.int64), torch.tensor([0]*neg_points.shape[0], dtype=torch.int64)])  # [2], 1 for max, 0 for min
 
             # points should be [W, H] and not [w, h], normalize by stride because they are used on original_x1 and not on x1
-            points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [2, 2]
+            points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [N, 2]
 
             print(f"Points: {points}, Labels: {labels}")
 
