@@ -59,7 +59,7 @@ class LatentSegmentor:
             points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [2, 2]
 
 
-            masks = self.compute_subject_mask_given_points(
+            masks = self._compute_subject_mask_given_points(
                 latents=x,
                 points=points,
                 labels=labels
