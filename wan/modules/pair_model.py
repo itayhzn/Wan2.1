@@ -83,10 +83,10 @@ class PairedWanSelfAttention(nn.Module):
         
         ###########################################
         if should_edit and self.latent_segmentor is not None:
-
-            masks = self.latent_segmentor.compute_subject_mask(original_x1[0], q1, k_subject, grid_sizes)
-
-            save_tensors('tensors', {'masks': masks})
+            masks = self.latent_segmentor.get_precomputed_masks()
+            if masks is None:
+                masks = self.latent_segmentor.compute_subject_mask(original_x1[0], q1, k_subject, grid_sizes)
+                save_tensors('tensors', {'masks': masks})
 
         ###########################################
 

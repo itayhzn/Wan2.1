@@ -23,6 +23,12 @@ class LatentSegmentor:
         self.inference_state = None
         self.masks = None
 
+    def get_precomputed_masks(self):
+        """
+        Returns the precomputed masks if they exist, otherwise returns None.
+        """
+        return self.masks
+
     def compute_subject_mask(self, x, q, k, grid_sizes):
             if self.masks is not None:
                 return self.masks
