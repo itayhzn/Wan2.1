@@ -99,23 +99,24 @@ class PairedWanSelfAttention(nn.Module):
                 masks = self.latent_segmentor.compute_subject_mask(original_x1[0], q1, k_subject, grid_sizes)
                 # save_tensors('tensors', {'masks': masks})
 
-            masks = masks.view(1, -1, 1, 1)  # [1, F*H*W, 1, 1]
+            # masks = masks.view(1, -1, 1, 1)  # [1, F*H*W, 1, 1]
 
-            x2 = flash_attention(
-                q=rope_apply(q1, grid_sizes, freqs),
-                k=rope_apply(k2, grid_sizes, freqs),
-                v=v2,
-                k_lens=seq_lens,
-                window_size=self.window_size)
+            # x2 = flash_attention(
+            #     q=rope_apply(q1, grid_sizes, freqs),
+            #     k=rope_apply(k2, grid_sizes, freqs),
+            #     v=v2,
+            #     k_lens=seq_lens,
+            #     window_size=self.window_size)
 
-            x2 = x2 * masks + x1 * (1 - masks)  # [B, F*H*W, n, d]
-        else:
-            x2 = flash_attention(
-            q=rope_apply(q2, grid_sizes, freqs),
-            k=rope_apply(k2, grid_sizes, freqs),
-            v=v2,
-            k_lens=seq_lens,
-            window_size=self.window_size)
+            # x2 = x2 * masks + x1 * (1 - masks)  # [B, F*H*W, n, d]
+        # else:
+        
+        x2 = flash_attention(
+        q=rope_apply(q2, grid_sizes, freqs),
+        k=rope_apply(k2, grid_sizes, freqs),
+        v=v2,
+        k_lens=seq_lens,
+        window_size=self.window_size)
 
         ###########################################
        
@@ -182,7 +183,11 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
         if not should_edit:
             x2 = x1.clone()
         else:
+            masks = self.latent_segmentor.get_precomputed_masks()
+            masks = masks.view(1, -1, 1, 1)  # [1, F*H*W, 1, 1]
+            
             x2 = flash_attention(q2, k_edit, v_edit) # [b, F*W*H, n, d]
+            x2 = x2 * masks
                         
         # output
         x1 = x1.flatten(2)
