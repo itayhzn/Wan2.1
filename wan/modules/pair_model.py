@@ -89,8 +89,6 @@ class PairedWanSelfAttention(nn.Module):
             v=v1,
             k_lens=seq_lens,
             window_size=self.window_size) # [B, F*H*W, n, d]
-
-        
         
         ###########################################
         if should_edit and self.latent_segmentor is not None:

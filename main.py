@@ -9,18 +9,17 @@ import cv2
 
 from wan.modules.vae import WanVAE
 
-def read_videojam_prompts():
+def read_file(file_path):
     """
-    Read prompts from the videojam_prompts.txt file.
-    Returns a list of prompts.
+    Read a text file and return its content as a list of lines.
     """
-    with open("videojam_prompts.txt", "r") as f:
-        prompts = f.readlines()
-    return [prompt.strip() for prompt in prompts if prompt.strip()]
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+    return [line.strip() for line in lines if line.strip()]
 
 
 if __name__ == "__main__":
-    experiment_name = "added_subject_prompt"
+    experiment_name = "videojam_masked"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -33,15 +32,14 @@ if __name__ == "__main__":
     #     "A small dog playing with a red ball on a hardwood floor.",
     #     "A white kitten playing with a ball."
     # ]
-    prompts = [ 
-        "A small dog playing with a red ball on a hardwood floor."
-    ]
-    #read_videojam_prompts()
+    prompts = read_file("videojam_prompts.txt")
+    # [ 
+    #     "A small dog playing with a red ball on a hardwood floor."
+    # ]
 
     seeds = [ '1024' ]
 
-
-    subject_prompts = ['dog']
+    subject_prompts = read_file("videojam_subjects.txt")
 
     edit_prompt =  "cat" # "A cat." # "A red octopus moving its tentacles around."
 
