@@ -29,12 +29,12 @@ class LatentSegmentor:
         """
         return self.masks
 
-    def sample_points(self, first_frame_map, w, h):
-        first_frame_map = first_frame_map.clone()
+    def sample_points(self, first_frame_map, w, h, N=4):
+        first_frame_map = first_frame_map.clone()  # [h, w]
         max_value = first_frame_map.max()
-        first_frame_map = first_frame_map[first_frame_map > 0.35 * max_value]  # filter out low attention points
+        first_frame_map[first_frame_map < 0.35 * max_value] = 0
         points = []
-        while len(points) < 4 and first_frame_map.numel() > 0:
+        while len(points) < N and first_frame_map.numel() > 0:
             positive_point_index = torch.argmax(first_frame_map).item()
             pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
             points.append([pos_j, pos_i])
@@ -44,7 +44,7 @@ class LatentSegmentor:
                 for j in range(max(0, pos_j - 1), min(w.item(), pos_j + 2)):
                     first_frame_map[i, j] = 0
 
-        return torch.Tensor(points, dtype=torch.int16)  # [N, 2] where N is the number of points sampled
+        return torch.tensor(points, dtype=torch.int16)  # [N, 2] where N is the number of points sampled
 
     def compute_subject_mask(self, x, q, k, grid_sizes):
             if self.masks is not None:
@@ -66,7 +66,7 @@ class LatentSegmentor:
             first_frame_map = attention_map[0, :, :]  # [h, w]
             
             # sample a point weighted on attention map
-            first_frame_map = first_frame_map.view(-1).softmax(dim=0).view(first_frame_map.shape)  # normalize to probabilities
+            first_frame_map = first_frame_map.view(-1).softmax(dim=0).view(h, w)  # normalize to probabilities
 
             # take argmax and argmin
             pos_points = self.sample_points(first_frame_map, w, h)  # [2, 2]
