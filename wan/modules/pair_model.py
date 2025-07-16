@@ -97,16 +97,23 @@ class PairedWanSelfAttention(nn.Module):
             attention_map = q_1_3 @ k_subject_3.transpose(-2, -1)  # [L1, L2]
             attention_map = attention_map[:, 0] # [L1] 
             
-            # reshape to [F, H, W]
-            attention_map = attention_map.view(grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2])  # [F, H, W]
-            first_frame_map = attention_map[0, :, :]  # [H, W]
+            # reshape to [f, h, w]
+            attention_map = attention_map.view(grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2])  # [f, h, w]
+            first_frame_map = attention_map[0, :, :].view(-1)  # [h, w]
             
-            # get i,j of max and min values in first_frame_map
-            max_i, max_j = (torch.argmax(first_frame_map).item() * stride[1] * stride[2]) // grid_sizes[0, 2], (torch.argmax(first_frame_map).item() * stride[1] * stride[2]) % grid_sizes[0, 2]
-            min_i, min_j = (torch.argmin(first_frame_map).item() * stride[1] * stride[2]) // grid_sizes[0, 2], (torch.argmin(first_frame_map).item() * stride[1] * stride[2]) % grid_sizes[0, 2]
+            # sample a point weighted on attention map
+            first_frame_map = first_frame_map.softmax(dim=0)  # normalize to probabilities
+            positive_point_index = torch.multinomial(first_frame_map, 1).item()
+            negative_point_index = torch.multinomial(1-first_frame_map, 1).item()
 
-            points = torch.tensor([[max_j, max_i], [min_j, min_i]], dtype=torch.float32)  # [2, 2]
+            pos_i, pos_j = divmod(positive_point_index, w) # [h, w]
+            neg_i, neg_j = divmod(negative_point_index, w) # [h, w]
+
+            points = torch.tensor([[pos_j, pos_i], [neg_j, neg_i]], dtype=torch.float32)  # [2, 2] 
             labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
+
+            # points should be [W, H] and not [w, h], normalize by stride because they are used on original_x1 and not on x1
+            points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [2, 2]
 
             print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map.shape: {attention_map.shape}, points: {points}, labels: {labels}, original_x1[0].shape: {original_x1[0].shape}, original_x2[0].shape: {original_x2[0].shape}, stride: {stride}')
 
@@ -116,7 +123,8 @@ class PairedWanSelfAttention(nn.Module):
                 labels=labels
             )
 
-            # downsample the masks with stride
+            # masks has shape [F, H, W]
+            # downsample the masks with stride to get [f,h,w]
             masks = masks[::stride[0], ::stride[1], ::stride[2]]
 
             save_tensors('tensors', {'masks': torch.Tensor(masks)})
