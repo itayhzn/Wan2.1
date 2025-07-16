@@ -39,7 +39,7 @@ class LatentSegmentor:
             # normalize to probabilities
             first_frame_map = first_frame_map / first_frame_map.sum()
             # sample a point weighted on attention map
-            positive_point_index = torch.multinomial(first_frame_map.view(-1))
+            positive_point_index = torch.multinomial(first_frame_map.view(-1), 1).item()  # sample a point based on the probabilities
 
             pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
             points.append([pos_j, pos_i])
