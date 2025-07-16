@@ -29,6 +29,23 @@ class LatentSegmentor:
         """
         return self.masks
 
+    def sample_points(self, first_frame_map, w, h):
+        first_frame_map = first_frame_map.clone()
+        max_value = first_frame_map.max()
+        first_frame_map = first_frame_map[first_frame_map > 0.35 * max_value]  # filter out low attention points
+        points = []
+        while len(points) < 4 and first_frame_map.numel() > 0:
+            positive_point_index = torch.argmax(first_frame_map).item()
+            pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
+            points.append([pos_j, pos_i])
+            
+            # remove the point and its neighborhood from the map
+            for i in range(max(0, pos_i - 1), min(h.item(), pos_i + 2)):
+                for j in range(max(0, pos_j - 1), min(w.item(), pos_j + 2)):
+                    first_frame_map[i, j] = 0
+
+        return torch.Tensor(points, dtype=torch.int16)  # [N, 2] where N is the number of points sampled
+
     def compute_subject_mask(self, x, q, k, grid_sizes):
             if self.masks is not None:
                 return self.masks
@@ -46,20 +63,17 @@ class LatentSegmentor:
             
             # reshape to [f, h, w]
             attention_map = attention_map.view(grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2])  # [f, h, w]
-            first_frame_map = attention_map[0, :, :].view(-1)  # [h, w]
+            first_frame_map = attention_map[0, :, :]  # [h, w]
             
             # sample a point weighted on attention map
-            first_frame_map = first_frame_map.softmax(dim=0)  # normalize to probabilities
+            first_frame_map = first_frame_map.view(-1).softmax(dim=0).view(first_frame_map.shape)  # normalize to probabilities
 
             # take argmax and argmin
-            positive_point_index = torch.argmax(first_frame_map).item()
-            negative_point_index = torch.argmin(first_frame_map).item()
+            pos_points = self.sample_points(first_frame_map, w, h)  # [2, 2]
+            neg_points = self.sample_points(1 - first_frame_map, w, h)  # [2, 2]
 
-            pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
-            neg_i, neg_j = divmod(negative_point_index, w.item())  # [h, w]
-
-            points = torch.tensor([[pos_j, pos_i], [neg_j, neg_i]], dtype=torch.float32)  # [2, 2] 
-            labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
+            points = torch.cat([pos_points, neg_points], dim=0)  # [2, 2]
+            labels = torch.cat([torch.tensor([1]*pos_points.shape[0], dtype=torch.int64), torch.tensor([0]*neg_points.shape[0], dtype=torch.int64)])  # [2], 1 for max, 0 for min
 
             # points should be [W, H] and not [w, h], normalize by stride because they are used on original_x1 and not on x1
             points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [2, 2]
