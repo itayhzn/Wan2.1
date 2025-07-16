@@ -106,8 +106,8 @@ class PairedWanSelfAttention(nn.Module):
             positive_point_index = torch.multinomial(first_frame_map, 1).item()
             negative_point_index = torch.multinomial(1-first_frame_map, 1).item()
 
-            pos_i, pos_j = divmod(positive_point_index, w) # [h, w]
-            neg_i, neg_j = divmod(negative_point_index, w) # [h, w]
+            pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
+            neg_i, neg_j = divmod(negative_point_index, w.item())  # [h, w]
 
             points = torch.tensor([[pos_j, pos_i], [neg_j, neg_i]], dtype=torch.float32)  # [2, 2] 
             labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
