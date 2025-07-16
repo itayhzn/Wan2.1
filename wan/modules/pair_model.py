@@ -102,13 +102,13 @@ class PairedWanSelfAttention(nn.Module):
             first_frame_map = attention_map[0, :, :]  # [H, W]
             
             # get i,j of max and min values in first_frame_map
-            max_i, max_j = (torch.argmax(first_frame_map).item() * stride[1]) // grid_sizes[0, 2], (torch.argmax(first_frame_map).item() * stride[2]) % grid_sizes[0, 2]
-            min_i, min_j = (torch.argmin(first_frame_map).item() * stride[1]) // grid_sizes[0, 2], (torch.argmin(first_frame_map).item() * stride[2]) % grid_sizes[0, 2]
+            max_i, max_j = (torch.argmax(first_frame_map).item() * stride[1] * stride[2]) // grid_sizes[0, 2], (torch.argmax(first_frame_map).item() * stride[1] * stride[2]) % grid_sizes[0, 2]
+            min_i, min_j = (torch.argmin(first_frame_map).item() * stride[1] * stride[2]) // grid_sizes[0, 2], (torch.argmin(first_frame_map).item() * stride[1] * stride[2]) % grid_sizes[0, 2]
 
             points = torch.tensor([[max_j, max_i], [min_j, min_i]], dtype=torch.float32)  # [2, 2]
             labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
 
-            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map: {attention_map.shape}, points: {points.shape}, labels: {labels.shape}, original_x1[0].shape: {original_x1[0].shape}, original_x2[0].shape: {original_x2[0].shape}, stride: {stride}')
+            print(f'x1.shape: {x1.shape}, x2.shape: {x2.shape}, grid_sizes: {grid_sizes}, seq_lens: {seq_lens}, attention_map.shape: {attention_map.shape}, points: {points}, labels: {labels}, original_x1[0].shape: {original_x1[0].shape}, original_x2[0].shape: {original_x2[0].shape}, stride: {stride}')
 
             masks = self.latent_segmentor.compute_subject_mask(
                 latents=original_x1,

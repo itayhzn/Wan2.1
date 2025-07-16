@@ -43,9 +43,9 @@ class LatentSegmentor:
             labels = labels.cpu().numpy()
         
         # translate points from latent space to video space
-        latent_height, latent_width, latent_frame_cnt = latents[0].shape[-2], latents[0].shape[-1], latents[0].shape[-3]
-        video_height, video_width, video_frame_cnt = video.shape[-2], video.shape[-1], video.shape[-3]
-        points = (points * np.array([1.0 * video_width / latent_width, 1.0 * video_height / latent_height])).astype(int)    
+        f, h, w = latents[0].shape[-3], latents[0].shape[-2], latents[0].shape[-1]
+        F, H, W = video.shape[-3], video.shape[-2], video.shape[-1]
+        points = (points * np.array([1.0 * W / w, 1.0 * H / h])).astype(int)    
         
         save_video_tensor_in_dir(video.permute(1,2,3,0), video_dir)
         del videos, video  # free memory
@@ -53,7 +53,7 @@ class LatentSegmentor:
         delete_video_dir(video_dir)
 
         # downsample the masks in time (F -> f)
-        f_stride = video_frame_cnt // latent_frame_cnt
+        f_stride = (F-1) // (f-1) if f > 1 else 1
         subject_masks = {
             frame_idx/f_stride: mask 
             for frame_idx, mask in subject_masks.items() 
