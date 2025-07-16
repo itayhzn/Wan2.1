@@ -103,14 +103,20 @@ class PairedWanSelfAttention(nn.Module):
             
             # sample a point weighted on attention map
             first_frame_map = first_frame_map.softmax(dim=0)  # normalize to probabilities
-            positive_point_index = torch.multinomial(first_frame_map, 1).item()
-            negative_point_index = torch.multinomial(1-first_frame_map, 1).item()
+            # positive_point_index = torch.multinomial(first_frame_map, 1).item()
+            # negative_point_index = torch.multinomial(1-first_frame_map, 1).item()
+
+            # take argmax and argmin
+            positive_point_index = torch.argmax(first_frame_map).item()
+            negative_point_index = torch.argmin(first_frame_map).item()
 
             pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
             neg_i, neg_j = divmod(negative_point_index, w.item())  # [h, w]
 
             points = torch.tensor([[pos_j, pos_i], [neg_j, neg_i]], dtype=torch.float32)  # [2, 2] 
             labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
+
+            print(f'positive_point_index: {positive_point_index}, negative_point_index: {negative_point_index}, points: {points}, labels: {labels}')
 
             # points should be [W, H] and not [w, h], normalize by stride because they are used on original_x1 and not on x1
             points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [2, 2]
@@ -127,7 +133,7 @@ class PairedWanSelfAttention(nn.Module):
             # downsample the masks with stride to get [f,h,w]
             masks = masks[::stride[0], ::stride[1], ::stride[2]]
 
-            save_tensors('tensors', {'masks': torch.Tensor(masks), 'original_x1[0]': original_x1[0]})
+            save_tensors('tensors', {'masks': torch.Tensor(masks), 'original_x1[0]': original_x1[0], 'attention_map': attention_map})
             return_dict['masks'] = masks
 
         ###########################################
