@@ -504,23 +504,10 @@ class T5EncoderModel:
             name=tokenizer_path, seq_len=text_len, clean='whitespace')
 
     def __call__(self, texts, device):
-        print(f"texts: {texts}")
         ids, mask = self.tokenizer(
             texts, return_mask=True, add_special_tokens=True)
-        print(f'input ids: {ids}')
-        print(f'input ids shape: {ids.shape}')
-        print(f'input mask: {mask}')
-        print(f'input mask shape: {mask.shape}')
         ids = ids.to(device)
         mask = mask.to(device)
         seq_lens = mask.gt(0).sum(dim=1).long()
-        print(f'seq_lens: {seq_lens}')
-        print(f'seq_lens shape: {seq_lens.shape}')
         context = self.model(ids, mask)
-        print(f'context: {context}')
-        print(f'context shape: {context.shape}')
-        print('===')
-        print([u[:v] for u, v in zip(context, seq_lens)])
-        print([u[:v].shape for u, v in zip(context, seq_lens)])
-        print('===')
         return [u[:v] for u, v in zip(context, seq_lens)]
