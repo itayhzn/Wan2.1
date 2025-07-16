@@ -274,6 +274,8 @@ class PairedWanT2V:
                 should_edit = t in edit_timesteps
                 arg_c['should_edit'] = should_edit
                 arg_null['should_edit'] = should_edit
+                
+                self.latent_segmentor.reset_inference_state()
 
                 timestep = torch.stack(timestep)
 

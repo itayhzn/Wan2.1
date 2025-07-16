@@ -17,8 +17,60 @@ class LatentSegmentor:
         self.sam2 = sam2 if sam2 is not None else SAM2VideoPredictor.from_pretrained("facebook/sam2-hiera-tiny")
         self.vae = vae
         self.inference_state = None
+        self.masks = None
 
-    def compute_subject_mask(self, latents, points, labels):
+    def reset_inference_state(self):
+        self.inference_state = None
+        self.masks = None
+
+    def compute_subject_mask(self, x, q, k, grid_sizes):
+            if self.masks is not None:
+                return self.masks
+            
+            _, F, H, W = x.shape
+            f, h, w = grid_sizes[0]
+
+            stride = torch.tensor([F//f, H // h, W // w], dtype=torch.int64)
+
+            # compute subject mask
+            q_1_3 = q[0, :, 3, :] # [L1, d]
+            k_subject_3 = k[0, :, 3, :] # [L2, d]
+            attention_map = q_1_3 @ k_subject_3.transpose(-2, -1)  # [L1, L2]
+            attention_map = attention_map[:, 0] # [L1] 
+            
+            # reshape to [f, h, w]
+            attention_map = attention_map.view(grid_sizes[0, 0], grid_sizes[0, 1], grid_sizes[0, 2])  # [f, h, w]
+            first_frame_map = attention_map[0, :, :].view(-1)  # [h, w]
+            
+            # sample a point weighted on attention map
+            first_frame_map = first_frame_map.softmax(dim=0)  # normalize to probabilities
+
+            # take argmax and argmin
+            positive_point_index = torch.argmax(first_frame_map).item()
+            negative_point_index = torch.argmin(first_frame_map).item()
+
+            pos_i, pos_j = divmod(positive_point_index, w.item())  # [h, w]
+            neg_i, neg_j = divmod(negative_point_index, w.item())  # [h, w]
+
+            points = torch.tensor([[pos_j, pos_i], [neg_j, neg_i]], dtype=torch.float32)  # [2, 2] 
+            labels = torch.tensor([1, 0], dtype=torch.int64)  # [2], 1 for max, 0 for min
+
+            # points should be [W, H] and not [w, h], normalize by stride because they are used on original_x1 and not on x1
+            points = (points * torch.tensor([1.0 * W / w, 1.0 * H / h])).to(torch.int64)  # [2, 2]
+
+
+            masks = self.compute_subject_mask_given_points(
+                latents=x,
+                points=points,
+                labels=labels
+            )
+
+            # masks has shape [F, H, W], downsample the masks with stride to get [f,h,w]
+            masks = masks[::stride[0], ::stride[1], ::stride[2]]
+            self.masks = torch.Tensor(masks)  # save masks for later use
+            return self.masks
+
+    def _compute_subject_mask_given_points(self, latents, points, labels):
         """
         Run latent through VAE to get video frames.
         Then, use compute_subject_mask to get the subject masks.
@@ -49,7 +101,7 @@ class LatentSegmentor:
         
         save_video_tensor_in_dir(video.permute(1,2,3,0), video_dir)
         del videos, video  # free memory
-        subject_masks = self._compute_subject_mask(video_dir, points, labels)
+        subject_masks = self._compute_subject_mask_on_decoded_video(video_dir, points, labels)
         delete_video_dir(video_dir)
 
         # downsample the masks in time (F -> f)
@@ -74,7 +126,7 @@ class LatentSegmentor:
 
         return masks
     
-    def _compute_subject_mask(self, video_dir, points, labels):
+    def _compute_subject_mask_on_decoded_video(self, video_dir, points, labels):
         if self.inference_state is not None:
             self.sam2._reset_tracking_results(self.inference_state)
         else:
