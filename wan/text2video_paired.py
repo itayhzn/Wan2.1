@@ -133,7 +133,8 @@ class PairedWanT2V:
                  offload_model=True,
                  edit_prompt="",
                  subject_prompt="",
-                 encoded_params=None):
+                 encoded_params=None,
+                 original_video=None):
         r"""
         Generates video frames from text prompt using diffusion process.
 
@@ -268,6 +269,8 @@ class PairedWanT2V:
 
             edit_timesteps = timesteps[7:]
 
+            self.compute_subject_mask(self.vae.encode(original_video), subject_context)
+
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
 
@@ -275,8 +278,6 @@ class PairedWanT2V:
                 arg_c['should_edit'] = should_edit
                 arg_null['should_edit'] = should_edit
                 
-                self.latent_segmentor.reset_inference_state()
-
                 timestep = torch.stack(timestep)
 
                 self.model.to(self.device)
@@ -352,3 +353,11 @@ class PairedWanT2V:
             dist.barrier()
 
         return videos1[0] if self.rank == 0 else None, videos2[0] if self.rank == 0 else None
+
+    def compute_subject_mask(self, x, subject_context):
+        q, _, _ = self.model.qkv_fn(x)
+        _, k_subject, _ = self.model.qkv_fn(subject_context)
+        grid_sizes = self.model.compute_grid_sizes(x)
+
+        self.latent_segmentor.reset_inference_state()
+        return self.latent_segmentor.compute_subject_mask(x, q, k_subject, grid_sizes)
