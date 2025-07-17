@@ -32,15 +32,13 @@ if __name__ == "__main__":
     #     "A small dog playing with a red ball on a hardwood floor.",
     #     "A white kitten playing with a ball."
     # ]
-    prompts = # read_file("videojam_prompts.txt")
-    [ 
+    prompts = [ # read_file("videojam_prompts.txt")
         "A small dog playing with a red ball on a hardwood floor."
     ]
 
     seeds = [ '1024' ]
 
-    subject_prompts =  # read_file("videojam_subjects.txt")
-    [
+    subject_prompts = [ # read_file("videojam_subjects.txt")
         'dog'
     ]
 
