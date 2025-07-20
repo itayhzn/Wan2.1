@@ -113,6 +113,10 @@ class PairedWanSelfAttention(nn.Module):
         return x1, x2
 
     def qkv_fn(self, x):
+        # if x is a list, convert it to a tensor
+        if isinstance(x, list):
+            x = torch.stack(x, dim=0)
+            x = x.to(self.norm_q.weight.device)
         b, n, d = *x.shape[:1], self.num_heads, self.head_dim
         q = self.norm_q(self.q(x)).view(b, -1, n, d)
         k = self.norm_k(self.k(x)).view(b, -1, n, d)
