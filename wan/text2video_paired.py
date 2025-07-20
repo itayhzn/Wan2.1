@@ -269,7 +269,7 @@ class PairedWanT2V:
 
             edit_timesteps = timesteps[7:]
 
-            self.compute_subject_mask(self.vae.encode([original_video]), subject_context)
+            self.compute_subject_mask(self.vae.encode([original_video])[0], subject_context)
 
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
