@@ -650,7 +650,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         assert seq_lens.max() <= seq_lens
         
         x = torch.cat([
-            torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
+            torch.cat([u, u.new_zeros(1, seq_lens - u.size(1), u.size(2))],
                       dim=1) for u in x
         ])
 
