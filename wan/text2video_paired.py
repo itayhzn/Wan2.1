@@ -354,8 +354,8 @@ class PairedWanT2V:
 
         return videos1[0] if self.rank == 0 else None, videos2[0] if self.rank == 0 else None
 
-    def compute_subject_mask(self, x, subject_context):
-        print(x.shape)
+    def compute_subject_mask_given_original_video(self, original_video, subject_context):
+        print(original_video.shape)
 
         x = self.vae.encode([x])[0]
         x = x.unsqueeze(0)
