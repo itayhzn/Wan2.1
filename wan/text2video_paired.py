@@ -363,7 +363,7 @@ class PairedWanT2V:
         subject_context = self.model.text_embedding(
                 torch.stack([
                     torch.cat(
-                        [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
+                        [u, u.new_zeros(self.model.text_len - u.size(0), u.size(1))])
                     for u in subject_context
                 ]))
         print(subject_context.shape)
