@@ -356,8 +356,8 @@ class PairedWanT2V:
 
     def compute_subject_mask_given_original_video(self, x, subject_context):
         print(x.shape)
-        x = self.vae.encode([x])[0]
-        print(x.shape)
+        x = self.vae.encode([x])
+        print(x[0].shape)
         x = self.model.prepare_for_qkv(x)
         print(x.shape)
 
