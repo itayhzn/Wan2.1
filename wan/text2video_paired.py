@@ -357,7 +357,7 @@ class PairedWanT2V:
     def compute_subject_mask_given_original_video(self, original_video, subject_context):
         print(original_video.shape)
 
-        x = self.vae.encode([x])[0]
+        x = self.vae.encode([original_video])[0]
         x = x.unsqueeze(0)
 
         print(x.shape)
