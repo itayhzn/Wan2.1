@@ -355,6 +355,10 @@ class PairedWanT2V:
         return videos1[0] if self.rank == 0 else None, videos2[0] if self.rank == 0 else None
 
     def compute_subject_mask(self, x, subject_context):
+        print(x)
+        if not isinstance(x, torch.Tensor):
+            x = torch.tensor(x, device=self.device)
+        print(x.shape)
         q, _, _ = self.model.qkv_fn(x)
         _, k_subject, _ = self.model.qkv_fn(subject_context)
         grid_sizes = self.model.compute_grid_sizes(x)
