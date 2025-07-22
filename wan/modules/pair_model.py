@@ -113,10 +113,6 @@ class PairedWanSelfAttention(nn.Module):
         return x1, x2
 
     def qkv_fn(self, x):
-        # if x is a list, convert it to a tensor
-        if isinstance(x, list):
-            x = torch.stack(x, dim=0)
-            x = x.to(self.norm_q.weight.device)
         b, n, d = *x.shape[:1], self.num_heads, self.head_dim
         q = self.norm_q(self.q(x)).view(b, -1, n, d)
         k = self.norm_k(self.k(x)).view(b, -1, n, d)
@@ -639,6 +635,26 @@ class PairedWanModel(ModelMixin, ConfigMixin):
 
         # init output layer
         nn.init.zeros_(self.head.head.weight)
+
+    def prepare_for_qkv(self, x):
+        # embeddings
+        x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
+
+        grid_sizes = torch.stack(
+            [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
+        
+        x = [u.flatten(2).transpose(1, 2) for u in x]
+
+        seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
+    
+        assert seq_lens.max() <= seq_len 
+        
+        x = torch.cat([
+            torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
+                      dim=1) for u in x
+        ])
+
+        return x
 
     def qkv_fn(self, x):
         return self.blocks[0].qkv_fn(x)

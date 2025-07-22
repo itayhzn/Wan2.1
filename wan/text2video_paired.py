@@ -355,15 +355,25 @@ class PairedWanT2V:
         return videos1[0] if self.rank == 0 else None, videos2[0] if self.rank == 0 else None
 
     def compute_subject_mask_given_original_video(self, original_video, subject_context):
-        print(original_video.shape)
-
+        print(x.shape)
         x = self.vae.encode([original_video])[0]
-        x = x.unsqueeze(0)
-
+        print(x.shape)
+        x = self.model.prepare_for_qkv(x)
         print(x.shape)
 
         q, _, _ = self.model.qkv_fn(x)
+
+        print(subject_context.shape)
+        subject_context = self.model.text_embedding(
+                torch.stack([
+                    torch.cat(
+                        [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
+                    for u in subject_context
+                ]))
+        print(subject_context.shape)
+        
         _, k_subject, _ = self.model.qkv_fn(subject_context)
+        
         grid_sizes = self.model.compute_grid_sizes(x)
 
         self.latent_segmentor.reset_inference_state()

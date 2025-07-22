@@ -139,6 +139,7 @@ class WanSelfAttention(nn.Module):
 
         # query, key, value function
         def qkv_fn(x):
+            print(x.shape)
             q = self.norm_q(self.q(x)).view(b, s, n, d)
             k = self.norm_k(self.k(x)).view(b, s, n, d)
             v = self.v(x).view(b, s, n, d)
