@@ -375,6 +375,5 @@ class PairedWanT2V:
         self.latent_segmentor.reset_inference_state()
         masks = self.latent_segmentor.compute_subject_mask(latent[0], q, k_subject, grid_sizes)
         masks = masks.view(1, -1)  # [1, F*H*W]
-        print(masks.shape)
         return masks
 
