@@ -87,9 +87,7 @@ class PairedWanSelfAttention(nn.Module):
             x_edit = flash_attention(
                 q=q1,
                 k=k_edit,
-                v=v_edit,
-                k_lens=seq_lens,
-                window_size=self.window_size) # [B, F*H*W, n, d]
+                v=v_edit) # [B, F*H*W, n, d]
 
             print(f"x_edit.shape: {x_edit.shape}, x1.shape: {x1.shape}, subject_masks.shape: {subject_masks.shape}")
 
