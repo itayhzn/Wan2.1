@@ -264,12 +264,13 @@ class PairedWanT2V:
             latents1 = noise1
             latents2 = noise2
 
-            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context}
-            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null}
+            masks = self.compute_subject_mask_given_original_video(original_video, subject_context)
+
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_mask': masks}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_mask': masks}
 
             edit_timesteps = timesteps[7:]
 
-            self.compute_subject_mask_given_original_video(original_video, subject_context)
 
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
@@ -371,7 +372,8 @@ class PairedWanT2V:
         _, k_subject, _ = self.model.qkv_fn(subject_context)
         
         self.latent_segmentor.reset_inference_state()
-        mask = self.latent_segmentor.compute_subject_mask(x, q, k_subject, grid_sizes)
-        print(mask.shape)
-        return mask
+        masks = self.latent_segmentor.compute_subject_mask(x, q, k_subject, grid_sizes)
+        masks = masks.view(1, -1)  # [1, F*H*W]
+        print(masks.shape)
+        return masks
 

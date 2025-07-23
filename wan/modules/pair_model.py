@@ -60,7 +60,7 @@ class PairedWanSelfAttention(nn.Module):
         assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
         self.latent_segmentor = segmentor
 
-    def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs, original_x1=None, original_x2=None, should_edit=False):
+    def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs, original_x1=None, original_x2=None, should_edit=False, subject_masks=None):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -71,38 +71,32 @@ class PairedWanSelfAttention(nn.Module):
         b, s, n, d = *x1.shape[:2], self.num_heads, self.head_dim
 
         q1, k1, v1 = self.qkv_fn(x1) # [B, F*H*W, n, d]
-        q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
-        q_subject, k_subject, v_subject = self.qkv_fn(subject_context) # [B, L_subject, n, d]
-
-
+        
         x1 = flash_attention(
             q=rope_apply(q1, grid_sizes, freqs),
             k=rope_apply(k1, grid_sizes, freqs),
             v=v1,
             k_lens=seq_lens,
             window_size=self.window_size) # [B, F*H*W, n, d]
-        
-        x2 = x1
 
-        if should_edit:  
-            masks = self.latent_segmentor.get_precomputed_masks()
-            masks = masks.view(1, -1, 1, 1)  # [1, F*H*W, 1, 1]
+        if should_edit:
+            subject_masks = subject_masks.view(1, -1, 1, 1)
+            q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
+            q_edit, k_edit, v_edit = self.qkv_fn(edit_context) # [B, L2, n, d]
 
-            x2_1 = flash_attention(
-                q=rope_apply(q1 * (1-masks), grid_sizes, freqs),
-                k=rope_apply(k1 * (1-masks), grid_sizes, freqs),
-                v=v1,
+            x_edit = flash_attention(
+                q=rope_apply(q1, grid_sizes, freqs),
+                k=rope_apply(k_edit, grid_sizes, freqs),
+                v=v_edit,
                 k_lens=seq_lens,
-                window_size=self.window_size)
+                window_size=self.window_size) # [B, F*H*W, n, d]
 
-            x2_subject = flash_attention(
-                q=rope_apply(q1 * masks, grid_sizes, freqs),
-                k=rope_apply(k_subject * masks, grid_sizes, freqs),
-                v=v_subject,
-                k_lens=seq_lens,
-                window_size=self.window_size)
+            x2 = x_edit * subject_masks + x1 * (1 - subject_masks)
 
-            x2 = x2 * (1 - masks) + x2_subject * masks
+        else:
+            x2 = x1
+
+
 
         # output
         x1 = x1.flatten(2)
@@ -121,7 +115,7 @@ class PairedWanSelfAttention(nn.Module):
 
 class PairedWanT2VCrossAttention(PairedWanSelfAttention):
 
-    def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False, original_x1=None, original_x2=None):
+    def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False, original_x1=None, original_x2=None, subject_masks=None):
         r"""
         Args:
             x1, x2(Tensor): Shape [B, L1, C]
@@ -133,58 +127,15 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
 
         # compute query, key, value
         q1 = self.norm_q(self.q(x1)).view(b, -1, n, d)
-        k1 = self.norm_k(self.k(x1)).view(b, -1, n, d)
-        v1 = self.v(x1).view(b, -1, n, d)
-
         k_context1 = self.norm_k(self.k(context1)).view(b, -1, n, d)
         v_context1 = self.v(context1).view(b, -1, n, d)
 
-        q2 = self.norm_q(self.q(x2)).view(b, -1, n, d)
-        k2 = self.norm_k(self.k(x2)).view(b, -1, n, d)
-        v2 = self.v(x2).view(b, -1, n, d)
-        
-        q_edit = self.norm_q(self.q(edit_context)).view(b, -1, n, d)
-        k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
-        v_edit = self.v(edit_context).view(b, -1, n, d)
-
-        # subject_mask = q_edit # compute_subject_mask(q1, k_context1, subject_token_index=1)
-
-        # save q1, q2, k1, k2, k_edit, v1, v2, v_edit on disk at '/home/ai_center/ai_date/itaytuviah/Wan2.1/tensors/{timestep}/{tensor_name}.pt'
-        # if save_tensors_dir is not None:
-        #     tensors_dict = {
-        #         'q1': q1, 
-        #         'q2': q2, 
-        #         'k1': k1, 
-        #         'k2': k2,
-        #         'k_context1': k_context1, 
-        #         'k_edit': k_edit,
-        #         'v1': v1, 
-        #         'v2': v2, 
-        #         'v_context1': v_context1, 
-        #         'v_edit': v_edit,
-        #         # 'subject_mask': subject_mask
-        #     }
-        #     save_tensors(save_tensors_dir, tensors_dict)
-
-
         # compute attention
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
-        # x2_1 = flash_attention(q2, k1, v1) 
-        # if not should_edit:
-        #     x2 = x1.clone()
-        # else:
-        #     masks = self.latent_segmentor.get_precomputed_masks()
-        #     masks = masks.view(1, -1, 1, 1)  # [1, F*H*W, 1, 1]
-            
-        #     x2 = flash_attention(q2, k_edit, v_edit) # [b, F*W*H, n, d]
-        #     x2 = x2 * masks
-                        
+                       
         # output
         x1 = x1.flatten(2)
         x1 = self.o(x1)
-
-        # x2 = x2.flatten(2)
-        # x2 = self.o(x2)
 
         return x1, x2
     
@@ -246,7 +197,8 @@ class PairedWanAttentionBlock(nn.Module):
         save_tensors_dir=None,
         should_edit=False,
         original_x1=None,
-        original_x2=None
+        original_x2=None,
+        subject_masks=None
     ):
         r"""
         Args:
@@ -272,14 +224,15 @@ class PairedWanAttentionBlock(nn.Module):
             freqs, 
             original_x1=original_x1,
             original_x2=original_x2,
-            should_edit=should_edit)
+            should_edit=should_edit,
+            subject_masks=subject_masks)
         with amp.autocast(dtype=torch.float32):
             x1 = x1 + y1 * e[2]
             x2 = x2 + y2 * e[2]
 
         # cross-attention & ffn function
-        def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2):
-            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit, original_x1, original_x2)
+        def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks):
+            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks=subject_masks)
             x1 = x1 + _x1
             x2 = x2 + _x2
             y1 = self.ffn(self.norm2(x1).float() * (1 + e[4]) + e[3])
@@ -289,7 +242,7 @@ class PairedWanAttentionBlock(nn.Module):
                 x2 = x2 + y2 * e[5]
             return x1, x2
 
-        x1, x2 = cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2)
+        x1, x2 = cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks=subject_masks)
         return x1, x2
     
     def qkv_fn(self, x):
@@ -426,7 +379,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
 
         Args:
             segmentor (LatentSegmentor):
-                An instance of LatentSegmentor to be used for subject mask computation.
+                An instance of LatentSegmentor to be used for subject masks computation.
         """
         assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
         self.latent_segmentor = segmentor
@@ -447,7 +400,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         edit_context=None,
         subject_context=None,
         save_tensors_dir=None,
-        should_edit=False
+        should_edit=False,
+        subject_masks=None
     ):
         r"""
         Forward pass through the diffusion model
@@ -567,6 +521,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             should_edit=should_edit,
             original_x1=original_x1,
             original_x2=original_x2,
+            subject_masks=subject_masks
             )
 
         for i, block in enumerate(self.blocks):
