@@ -96,7 +96,7 @@ class PairedWanSelfAttention(nn.Module):
                 k=k_edit,
                 v=v_edit) # [B, F*H*W, n, d]
 
-            x2 = x_edit * subject_masks + x1_1 * (1 - subject_masks)
+            x2 = x_edit * subject_masks + x2_1 * (1 - subject_masks)
 
         else:
             x2 = x1
