@@ -654,7 +654,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
                       dim=1) for u in x
         ])
 
-        return x
+        return x, grid_sizes
 
     def qkv_fn(self, x):
         return self.blocks[0].qkv_fn(x)

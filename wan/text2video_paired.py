@@ -356,7 +356,7 @@ class PairedWanT2V:
 
     def compute_subject_mask_given_original_video(self, x, subject_context):
         x = self.vae.encode([x])
-        x = self.model.prepare_for_qkv(x)
+        x, grid_sizes = self.model.prepare_for_qkv(x)
         q, _, _ = self.model.qkv_fn(x)
 
         print(subject_context[0].shape)
@@ -370,7 +370,8 @@ class PairedWanT2V:
 
         _, k_subject, _ = self.model.qkv_fn(subject_context)
         
-        grid_sizes = self.model.compute_grid_sizes(x)
-
         self.latent_segmentor.reset_inference_state()
-        return self.latent_segmentor.compute_subject_mask(x, q, k_subject, grid_sizes)
+        mask = self.latent_segmentor.compute_subject_mask(x, q, k_subject, grid_sizes)
+        print(mask.shape)
+        return mask
+
