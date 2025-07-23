@@ -266,8 +266,8 @@ class PairedWanT2V:
 
             masks = self.compute_subject_mask_given_original_video(original_video, subject_context)
 
-            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_mask': masks}
-            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_mask': masks}
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': masks}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': masks}
 
             edit_timesteps = timesteps[7:]
 
