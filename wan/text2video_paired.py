@@ -266,6 +266,12 @@ class PairedWanT2V:
 
             masks = self.compute_subject_mask_given_original_video(original_video, subject_context)
 
+            ###########
+            save_tensors(
+                save_tensors_dir=f'tensors/{encoded_params}',
+                tensors_dict={'subject_masks': masks})
+            ###########
+
             arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': masks}
             arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': masks}
 
@@ -315,24 +321,6 @@ class PairedWanT2V:
                 latents1 = [temp_x0_1.squeeze(0)]
                 latents2 = [temp_x0_2.squeeze(0)]
 
-                # if encoded_params is not None:
-                #     # predict x0 from latents
-                #     sigma_t = paired_sample_scheduler.sigmas[idx]
-                #     x0_pred_1 = latents1[0].clone() - sigma_t * noise_pred_cond1
-                #     x0_pred_2 = latents2[0].clone() - sigma_t * noise_pred_cond2
-                    
-                #     tensors_dict = {
-                #         'latent1': latents1[0].clone(),
-                #         'latent2': latents2[0].clone(),
-                #         'x0_pred1': x0_pred_1.clone(),
-                #         'x0_pred2': x0_pred_2.clone(),
-                #     }
-                #     save_tensors_dir = f'tensors/{encoded_params}/timestep_{idx}'
-                #     if not os.path.exists(save_tensors_dir):
-                #         os.makedirs(save_tensors_dir)
-                #     logging.info(f'Saving tensors to {save_tensors_dir}')
-                #     save_tensors(save_tensors_dir, tensors_dict)
-
                 
             x0_1 = latents1
             x0_2 = latents2
@@ -360,9 +348,6 @@ class PairedWanT2V:
         x, grid_sizes = self.model.prepare_for_qkv(latent)
         q, _, _ = self.model.qkv_fn(x)
         
-        print(f"type(latent): {type(latent)}, type(x): {type(x)}, type(grid_sizes): {type(grid_sizes)}")
-        print(f"latent.shape: {latent.shape if isinstance(latent, torch.Tensor) else latent[0].shape}, x.shape: {x.shape if isinstance(x, torch.Tensor) else x[0].shape}, grid_sizes: {grid_sizes}")
-
         subject_context = self.model.text_embedding(
                 torch.stack([
                     torch.cat(

@@ -84,14 +84,19 @@ class PairedWanSelfAttention(nn.Module):
             q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
             q_edit, k_edit, v_edit = self.qkv_fn(edit_context) # [B, L2, n, d]
 
+            x2_1 = flash_attention(
+                q=rope_apply(q2, grid_sizes, freqs),
+                k=rope_apply(k2, grid_sizes, freqs),
+                v=v1,
+                k_lens=seq_lens,
+                window_size=self.window_size) # [B, F*H*W, n, d]
+
             x_edit = flash_attention(
-                q=q1,
+                q=q2,
                 k=k_edit,
                 v=v_edit) # [B, F*H*W, n, d]
 
-            print(f"x_edit.shape: {x_edit.shape}, x1.shape: {x1.shape}, subject_masks.shape: {subject_masks.shape}")
-
-            x2 = x_edit * subject_masks + x1 * (1 - subject_masks)
+            x2 = x_edit * subject_masks + x1_1 * (1 - subject_masks)
 
         else:
             x2 = x1
