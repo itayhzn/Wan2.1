@@ -359,8 +359,9 @@ class PairedWanT2V:
         latent = self.vae.encode([x])
         x, grid_sizes = self.model.prepare_for_qkv(latent)
         q, _, _ = self.model.qkv_fn(x)
-
-        print(f"latent.shape: {latent.shape}, x.shape: {x.shape}, grid_sizes: {grid_sizes}")
+        
+        print(f"type(latent): {type(latent)}, type(x): {type(x)}, type(grid_sizes): {type(grid_sizes)}")
+        print(f"latent.shape: {latent.shape if isinstance(latent, torch.Tensor) else latent[0].shape}, x.shape: {x.shape if isinstance(x, torch.Tensor) else x[0].shape}, grid_sizes: {grid_sizes}")
 
         subject_context = self.model.text_embedding(
                 torch.stack([
