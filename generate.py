@@ -435,7 +435,7 @@ def generate(args):
             seed=args.base_seed,
             offload_model=args.offload_model)
         paired_video = None
-        
+        original_video = None
         if args.paired_generation:
             logging.info("Creating WanT2V Paired pipeline.")
             wan_t2v = wan.PairedWanT2V(
@@ -452,6 +452,8 @@ def generate(args):
             logging.info(
                 f"Generating paired {'image' if 't2i' in args.task else 'video'} ...")
             
+            original_video = video
+
             video, paired_video = wan_t2v.generate(
                 args.prompt,
                 size=SIZE_CONFIGS[args.size],
@@ -465,7 +467,7 @@ def generate(args):
                 edit_prompt=args.edit_prompt,
                 subject_prompt=args.subject_prompt,
                 encoded_params=encoded_params,
-                original_video=video)
+                original_video=original_video)
 
     elif "i2v" in args.task:
         if args.prompt is None:
@@ -676,6 +678,17 @@ def generate(args):
                     nrow=1,
                     normalize=True,
                     value_range=(-1, 1))
+                
+        if original_video is not None:
+            original_save_file = args.save_file.replace('.mp4', '_original.mp4')
+            logging.info(f"Saving original video to {original_save_file}")
+            cache_video(
+                tensor=original_video[None],
+                save_file=original_save_file,
+                fps=cfg.sample_fps,
+                nrow=1,
+                normalize=True,
+                value_range=(-1, 1))
     logging.info("Finished.")
 
 
