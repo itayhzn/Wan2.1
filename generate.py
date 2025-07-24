@@ -678,17 +678,7 @@ def generate(args):
                     nrow=1,
                     normalize=True,
                     value_range=(-1, 1))
-                
-        if original_video is not None:
-            original_save_file = args.save_file.replace('.mp4', '_original.mp4')
-            logging.info(f"Saving original video to {original_save_file}")
-            cache_video(
-                tensor=original_video[None],
-                save_file=original_save_file,
-                fps=cfg.sample_fps,
-                nrow=1,
-                normalize=True,
-                value_range=(-1, 1))
+        
     logging.info("Finished.")
 
 
