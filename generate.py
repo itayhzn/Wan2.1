@@ -437,7 +437,7 @@ def generate(args):
             offload_model=args.offload_model)
         paired_video = None
         original_video = None
-        if args.paired_generation and False:
+        if args.paired_generation:
             logging.info("Creating WanT2V Paired pipeline.")
             wan_t2v = wan.PairedWanT2V(
                 config=cfg,
