@@ -51,7 +51,7 @@ class LatentSegmentor:
 
         return torch.tensor(points, dtype=torch.int16)  # [N, 2] where N is the number of points sampled
 
-    def compute_subject_mask(self, x, q, k, grid_sizes):
+    def compute_subject_mask(self, x, q, k, grid_sizes, save_tensors_dir=None):
             if self.masks is not None:
                 return self.masks
             
@@ -88,6 +88,19 @@ class LatentSegmentor:
                 points=points,
                 labels=labels
             )
+
+            if save_tensors_dir is not None:
+                # save the attention map for debugging
+                save_tensors(
+                    save_tensors_dir=save_tensors_dir,
+                    tensors_dict={
+                        'first_frame_map': first_frame_map,
+                        'pos_points': pos_points,
+                        'neg_points': neg_points,
+                        'points': points,
+                        'masks_before_downsample': masks
+                        }
+                )
 
             # masks has shape [F, H, W], downsample the masks with stride to get [f,h,w]
             masks = masks[::stride[0], ::stride[1], ::stride[2]]

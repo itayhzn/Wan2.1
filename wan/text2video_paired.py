@@ -264,13 +264,7 @@ class PairedWanT2V:
             latents1 = noise1
             latents2 = noise2
 
-            masks = self.compute_subject_mask_given_original_video(original_video, subject_context)
-
-            ###########
-            save_tensors(
-                save_tensors_dir=f'tensors/{encoded_params}',
-                tensors_dict={'subject_masks': masks})
-            ###########
+            masks = self.compute_subject_mask_given_original_video(original_video, subject_context, save_tensors_dir=f'tensors/{encoded_params}')
 
             arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': masks}
             arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': masks}
@@ -343,7 +337,7 @@ class PairedWanT2V:
 
         return videos1[0] if self.rank == 0 else None, videos2[0] if self.rank == 0 else None
 
-    def compute_subject_mask_given_original_video(self, x, subject_context):
+    def compute_subject_mask_given_original_video(self, x, subject_context, save_tensors_dir=None):
         latent = self.vae.encode([x])
         x, grid_sizes = self.model.prepare_for_qkv(latent)
         q, _, _ = self.model.qkv_fn(x)
@@ -358,7 +352,20 @@ class PairedWanT2V:
         _, k_subject, _ = self.model.qkv_fn(subject_context)
         
         self.latent_segmentor.reset_inference_state()
-        masks = self.latent_segmentor.compute_subject_mask(latent[0], q, k_subject, grid_sizes)
+        masks = self.latent_segmentor.compute_subject_mask(latent[0], q, k_subject, grid_sizes, save_tensors_dir=save_tensors_dir)
         masks = masks.view(1, -1)  # [1, F*H*W]
+
+        if save_tensors_dir is not None:
+            save_tensors(
+                save_tensors_dir=save_tensors_dir,
+                tensors_dict={
+                    'latent': latent,
+                    'x': x,
+                    'q': q,
+                    'k_subject': k_subject,
+                    'grid_sizes': grid_sizes, 
+                    'subject_masks': masks
+                })
+
         return masks
 

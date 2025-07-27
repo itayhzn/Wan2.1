@@ -266,10 +266,11 @@ def _parse_args():
         help="Whether to generate paired video for T2V task. If set to True, the output will be a tuple of (video, paired_video)."
     )
     parser.add_argument(
-        "--edit_prompt",
+        "--edit_prompts",
         type=str,
-        default=None,
-        help="The edit prompt. Must be used with paired_generation=True."
+        nargs='*',
+        default=[],
+        help="The edit prompts. Must be used with paired_generation=True."
     )
     parser.add_argument(
         "--subject_prompts",
@@ -684,10 +685,11 @@ def generate(args):
 
 if __name__ == "__main__":
     args = _parse_args()
-    for prompt, subject_prompt in zip(args.prompts, args.subject_prompts):
+    for prompt, subject_prompt, edit_prompt in zip(args.prompts, args.subject_prompts, args.edit_prompts):
         for seed in args.seeds:
             args.prompt = prompt
             args.subject_prompt = subject_prompt
+            args.edit_prompt = edit_prompt
             args.base_seed = seed
             logging.info(f"Generating with seed {args.base_seed} ...")
             generate(args)
