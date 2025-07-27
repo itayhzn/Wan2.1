@@ -9,7 +9,7 @@ from sam2.sam2_video_predictor import SAM2VideoPredictor
 from wan.modules.vae import WanVAE
 import uuid
 
-from utils import save_video_tensor_in_dir, delete_video_dir
+from utils import save_video_tensor_in_dir, delete_video_dir, save_tensors
 
 # create a class to handle the segmentor logic
 class LatentSegmentor:
