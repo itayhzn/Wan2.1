@@ -437,7 +437,7 @@ def generate(args):
             offload_model=args.offload_model)
         paired_video = None
         original_video = None
-        if args.paired_generation:
+        if args.paired_generation and False:
             logging.info("Creating WanT2V Paired pipeline.")
             wan_t2v = wan.PairedWanT2V(
                 config=cfg,
@@ -675,6 +675,18 @@ def generate(args):
                 cache_video(
                     tensor=paired_video[None],
                     save_file=paired_save_file,
+                    fps=cfg.sample_fps,
+                    nrow=1,
+                    normalize=True,
+                    value_range=(-1, 1))
+
+            if args.paired_generation is True and original_video is not None:
+                original_save_file = args.save_file.replace(
+                    '.mp4', '_original.mp4')
+                logging.info(f"Saving original video to {original_save_file}")
+                cache_video(
+                    tensor=original_video[None],
+                    save_file=original_save_file,
                     fps=cfg.sample_fps,
                     nrow=1,
                     normalize=True,
