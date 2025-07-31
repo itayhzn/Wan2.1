@@ -38,8 +38,12 @@ def save_tensors(save_tensors_dir, tensors_dict):
 
     print(f'======= Saving tensors to {save_tensors_dir}')
     for name, tensor in tensors_dict.items():
+        if isinstance(tensor, torch.Tensor):
+            t = tensor.cpu().clone()
+        else:
+            t = torch.Tensor(tensor, device='cpu').clone()
         print(f'\tSaving tensor {name} to {os.path.join(save_tensors_dir, name)}')
-        torch.save(tensor.clone(), os.path.join(save_tensors_dir, f'{name}.pt'))
+        torch.save(t, os.path.join(save_tensors_dir, f'{name}.pt'))
     print(f'======= Saved tensors to {save_tensors_dir}')
 
 def read_video(video_path):
