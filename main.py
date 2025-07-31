@@ -19,7 +19,7 @@ def read_file(file_path):
 
 
 if __name__ == "__main__":
-    experiment_name = "onemask_selfqkmasked"
+    experiment_name = "mask-debug"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
