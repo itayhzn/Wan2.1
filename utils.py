@@ -41,7 +41,7 @@ def save_tensors(save_tensors_dir, tensors_dict):
         if isinstance(tensor, torch.Tensor):
             t = tensor.cpu().clone()
         else:
-            t = torch.Tensor(tensor, device='cpu').clone()
+            t = torch.tensor(tensor, device='cpu')
         print(f'\tSaving tensor {name} to {os.path.join(save_tensors_dir, name)}')
         torch.save(t, os.path.join(save_tensors_dir, f'{name}.pt'))
     print(f'======= Saved tensors to {save_tensors_dir}')
