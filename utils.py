@@ -39,11 +39,10 @@ def save_tensors(save_tensors_dir, tensors_dict):
     print(f'======= Saving tensors to {save_tensors_dir}')
     for name, tensor in tensors_dict.items():
         if isinstance(tensor, torch.Tensor):
-            t = tensor.cpu().clone()
+            print(f'\tSaving tensor {name} to {os.path.join(save_tensors_dir, name)}')
+            torch.save(t, os.path.join(save_tensors_dir, f'{name}.pt'))
         else:
-            t = torch.tensor(tensor, device='cpu')
-        print(f'\tSaving tensor {name} to {os.path.join(save_tensors_dir, name)}')
-        torch.save(t, os.path.join(save_tensors_dir, f'{name}.pt'))
+            print(f'{name} is not a tensor, skipping save. Type: {type(tensor)}')
     print(f'======= Saved tensors to {save_tensors_dir}')
 
 def read_video(video_path):
