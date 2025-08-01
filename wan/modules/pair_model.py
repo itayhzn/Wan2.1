@@ -128,8 +128,10 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
         k_context1 = self.norm_k(self.k(context1)).view(b, -1, n, d)
         v_context1 = self.v(context1).view(b, -1, n, d)
 
+        q2 = self.norm_q(self.q(x2)).view(b, -1, n, d)
         k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
         v_edit = self.v(edit_context).view(b, -1, n, d)
+
 
         # compute attention
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
