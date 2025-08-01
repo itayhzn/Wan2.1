@@ -355,6 +355,9 @@ class PairedWanT2V:
         masks = self.latent_segmentor.compute_subject_mask(latent[0], q, k_subject, grid_sizes, save_tensors_dir=save_tensors_dir)
         masks = masks.view(1, -1)  # [1, F*H*W]
 
+        print(f"masks shape: {masks.shape}, grid_sizes: {grid_sizes}, latent shape: {latent[0].shape}")
+        print("save_tensors_dir: ", save_tensors_dir)
+
         if save_tensors_dir is not None:
             save_tensors(
                 save_tensors_dir=save_tensors_dir,
