@@ -1,6 +1,6 @@
 import os
 import torch
-import SAMWISE.samwise_interface as samwise
+import samwise_interface as samwise
 
 if __name__ == "__main__":
     text_prompts = ["the horse jumping", "the person riding the horse"]
