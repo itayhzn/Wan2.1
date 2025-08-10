@@ -1,17 +1,17 @@
 import torch
 from torch import nn
-from util.misc import nested_tensor_from_videos_list, NestedTensor
-from models.CMT_adapter import CMT_adapter
+from SAMWISE.util.misc import nested_tensor_from_videos_list, NestedTensor
+from SAMWISE.models.CMT_adapter import CMT_adapter
 from hydra import compose, initialize
 import spacy
-from models.sam2.modeling.sam2_utils import preprocess
+from SAMWISE.models.sam2.modeling.sam2_utils import preprocess
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 import os
 import py3_wget
-from models.conditional_memory_encoder import ConditionalMemoryEncoder
+from SAMWISE.models.conditional_memory_encoder import ConditionalMemoryEncoder
 from fairseq.models.roberta import RobertaModel
-from models.model_utils import BackboneOutput, DecoderOutput, get_same_object_labels
+from SAMWISE.models.model_utils import BackboneOutput, DecoderOutput, get_same_object_labels
 from transformers import RobertaTokenizerFast
 
 
