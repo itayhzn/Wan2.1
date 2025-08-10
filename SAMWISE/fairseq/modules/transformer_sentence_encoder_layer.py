@@ -7,10 +7,10 @@ from typing import Callable, Optional
 
 import torch
 import torch.nn as nn
-from fairseq import utils
-from fairseq.modules import LayerNorm, MultiheadAttention
-from fairseq.modules.fairseq_dropout import FairseqDropout
-from fairseq.modules.quant_noise import quant_noise
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.modules import LayerNorm, MultiheadAttention
+from SAMWISE.fairseq.modules.fairseq_dropout import FairseqDropout
+from SAMWISE.fairseq.modules.quant_noise import quant_noise
 
 
 class TransformerSentenceEncoderLayer(nn.Module):

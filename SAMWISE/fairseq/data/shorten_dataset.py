@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import numpy as np
-from fairseq.data import data_utils
+from SAMWISE.fairseq.data import data_utils
 
 from . import BaseWrapperDataset
 

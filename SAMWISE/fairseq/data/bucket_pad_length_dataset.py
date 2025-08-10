@@ -5,8 +5,8 @@
 
 import numpy as np
 import torch.nn.functional as F
-from fairseq.data import BaseWrapperDataset
-from fairseq.data.data_utils import get_buckets, get_bucketed_sizes
+from SAMWISE.fairseq.data import BaseWrapperDataset
+from SAMWISE.fairseq.data.data_utils import get_buckets, get_bucketed_sizes
 
 
 class BucketPadLengthDataset(BaseWrapperDataset):

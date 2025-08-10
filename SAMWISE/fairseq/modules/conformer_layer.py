@@ -8,14 +8,14 @@ from typing import Optional
 
 import torch
 
-from fairseq.modules import (
+from SAMWISE.fairseq.modules import (
     ESPNETMultiHeadedAttention,
     LayerNorm,
     MultiheadAttention,
     RelPositionMultiHeadedAttention,
     RotaryPositionMultiHeadedAttention,
 )
-from fairseq.utils import get_activation_fn
+from SAMWISE.fairseq.utils import get_activation_fn
 
 
 class ConvolutionModule(torch.nn.Module):

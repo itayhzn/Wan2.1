@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from typing import Dict
 
-from fairseq.data.monolingual_dataset import MonolingualDataset
+from SAMWISE.fairseq.data.monolingual_dataset import MonolingualDataset
 
 from . import FairseqDataset
 

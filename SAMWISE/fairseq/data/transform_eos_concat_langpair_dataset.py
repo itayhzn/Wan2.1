@@ -8,7 +8,7 @@ import logging
 import torch
 from torch.utils.data.dataloader import default_collate
 
-from fairseq.data import ConcatDataset
+from SAMWISE.fairseq.data import ConcatDataset
 
 logger = logging.getLogger(__name__)
 

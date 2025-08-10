@@ -3,12 +3,12 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from fairseq.model_parallel.modules import ModelParallelMultiheadAttention
-from fairseq.modules import TransformerDecoderLayer, TransformerEncoderLayer
+from SAMWISE.fairseq.model_parallel.modules import ModelParallelMultiheadAttention
+from SAMWISE.fairseq.modules import TransformerDecoderLayer, TransformerEncoderLayer
 
 
 try:
-    from fairseq.model_parallel.megatron.mpu import (
+    from SAMWISE.fairseq.model_parallel.megatron.mpu import (
         ColumnParallelLinear,
         RowParallelLinear,
     )

@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 
-from fairseq.data import FairseqDataset, MonolingualDataset, data_utils
+from SAMWISE.fairseq.data import FairseqDataset, MonolingualDataset, data_utils
 
 
 class SpeechDLMDataset(FairseqDataset):

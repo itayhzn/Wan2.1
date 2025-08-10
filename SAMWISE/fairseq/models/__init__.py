@@ -10,8 +10,8 @@ import os
 
 from contextlib import ExitStack
 
-from fairseq.dataclass import FairseqDataclass
-from fairseq.dataclass.utils import merge_with_parent
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.dataclass.utils import merge_with_parent
 from hydra.core.config_store import ConfigStore
 from omegaconf import open_dict, OmegaConf
 

@@ -3,8 +3,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from fairseq import utils
-from fairseq.criterions import LegacyFairseqCriterion, register_criterion
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.criterions import LegacyFairseqCriterion, register_criterion
 from torch import nn
 
 

@@ -20,7 +20,7 @@ import torch.nn.functional as F
 from torch import Tensor
 
 if TYPE_CHECKING:
-    from fairseq.modules.multihead_attention import MultiheadAttention
+    from SAMWISE.fairseq.modules.multihead_attention import MultiheadAttention
 
 try:
     from amp_C import multi_tensor_l2norm
@@ -48,7 +48,7 @@ class FileContentsAction(argparse.Action):
         super(FileContentsAction, self).__init__(option_strings, dest, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        from fairseq.file_io import PathManager
+        from SAMWISE.fairseq.file_io import PathManager
 
         if PathManager.isfile(values):
             with PathManager.open(values) as f:
@@ -65,7 +65,7 @@ def split_paths(paths: str, separator=os.pathsep) -> List[str]:
 
 
 def load_ensemble_for_inference(filenames, task, model_arg_overrides=None):
-    from fairseq import checkpoint_utils
+    from SAMWISE.fairseq import checkpoint_utils
 
     deprecation_warning(
         "utils.load_ensemble_for_inference is deprecated. "
@@ -216,7 +216,7 @@ def load_embedding(embed_dict, vocab, embedding):
 
 
 def replace_unk(hypo_str, src_str, alignment, align_dict, unk):
-    from fairseq import tokenizer
+    from SAMWISE.fairseq import tokenizer
 
     # Tokens are strings here
     hypo_tokens = tokenizer.tokenize_line(hypo_str)
@@ -492,13 +492,13 @@ def import_user_module(args):
 
                 tasks_path = os.path.join(module_path, "tasks")
                 if os.path.exists(tasks_path):
-                    from fairseq.tasks import import_tasks
+                    from SAMWISE.fairseq.tasks import import_tasks
 
                     import_tasks(tasks_path, f"{module_name}.tasks")
 
                 models_path = os.path.join(module_path, "models")
                 if os.path.exists(models_path):
-                    from fairseq.models import import_models
+                    from SAMWISE.fairseq.models import import_models
 
                     import_models(models_path, f"{module_name}.models")
             elif module_path in sys.modules[module_name].__path__:
@@ -526,7 +526,7 @@ def log_softmax(x, dim: int, onnx_trace: bool = False):
 
 
 def get_perplexity(loss, round=2, base=2):
-    from fairseq.logging.meters import safe_round
+    from SAMWISE.fairseq.logging.meters import safe_round
 
     if loss is None:
         return 0.0
@@ -547,7 +547,7 @@ def relu_squared(x: torch.Tensor):
 
 def get_activation_fn(activation: str) -> Callable:
     """Returns the activation function corresponding to `activation`"""
-    from fairseq.modules import gelu, gelu_accurate
+    from SAMWISE.fairseq.modules import gelu, gelu_accurate
 
     if activation == "relu":
         return F.relu
@@ -717,7 +717,7 @@ def tpu_data_loader(itr):
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as pl
 
-    from fairseq.data import iterators
+    from SAMWISE.fairseq.data import iterators
 
     xm.rendezvous("tpu_data_loader")  # wait for all workers
     xm.mark_step()
@@ -869,7 +869,7 @@ def hotreload_function(name=None):
     * How to use:
         1. in python, import and decorate the top-level function to be re-run after code edits:
             ```python
-            from fairseq.utils import hotreload_function
+            from SAMWISE.fairseq.utils import hotreload_function
             ....
             @hotreload_function("train_step")
             def train_step(self, sample ....):
@@ -894,7 +894,7 @@ def hotreload_function(name=None):
     except ImportError as e:
         logger.warning("Please install jurigged: pip install jurigged[develoop]")
         raise e
-    from fairseq.distributed import utils as distributed_utils
+    from SAMWISE.fairseq.distributed import utils as distributed_utils
     import traceback
 
     def hotreload_decorator(func):

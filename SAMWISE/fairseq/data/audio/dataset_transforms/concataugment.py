@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 
-from fairseq.data.audio.dataset_transforms import (
+from SAMWISE.fairseq.data.audio.dataset_transforms import (
     AudioDatasetTransform,
     register_audio_dataset_transform,
 )

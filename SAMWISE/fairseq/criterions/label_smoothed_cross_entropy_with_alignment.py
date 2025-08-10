@@ -5,9 +5,9 @@
 
 import math
 
-from fairseq import utils
-from fairseq.logging import metrics
-from fairseq.criterions import register_criterion
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.criterions import register_criterion
 
 from .label_smoothed_cross_entropy import (
     LabelSmoothedCrossEntropyCriterion,

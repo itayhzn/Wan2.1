@@ -7,8 +7,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.data import encoders
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.data import encoders
 
 
 class RobertaHubInterface(nn.Module):
@@ -120,7 +120,7 @@ class RobertaHubInterface(nn.Module):
         self, sentence: str, return_all_hiddens: bool = False
     ) -> torch.Tensor:
         """Extract RoBERTa features, aligned to spaCy's word-level tokenizer."""
-        from fairseq.models.roberta import alignment_utils
+        from SAMWISE.fairseq.models.roberta import alignment_utils
         from spacy.tokens import Doc
 
         nlp = alignment_utils.spacy_nlp()

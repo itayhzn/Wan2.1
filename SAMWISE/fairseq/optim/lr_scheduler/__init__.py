@@ -7,8 +7,8 @@
 import importlib
 import os
 
-from fairseq import registry
-from fairseq.optim.lr_scheduler.fairseq_lr_scheduler import (  # noqa
+from SAMWISE.fairseq import registry
+from SAMWISE.fairseq.optim.lr_scheduler.fairseq_lr_scheduler import (  # noqa
     FairseqLRScheduler,
     LegacyFairseqLRScheduler,
 )

@@ -8,7 +8,7 @@ import importlib
 import os
 from abc import ABC, abstractmethod
 
-from fairseq import registry
+from SAMWISE.fairseq import registry
 from omegaconf import DictConfig
 
 
@@ -40,7 +40,7 @@ def build_scorer(choice, tgt_dict):
     _choice = choice._name if isinstance(choice, DictConfig) else choice
 
     if _choice == "bleu":
-        from fairseq.scoring import bleu
+        from SAMWISE.fairseq.scoring import bleu
 
         return bleu.Scorer(
             bleu.BleuConfig(pad=tgt_dict.pad(), eos=tgt_dict.eos(), unk=tgt_dict.unk())

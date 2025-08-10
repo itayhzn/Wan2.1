@@ -10,8 +10,8 @@ from typing import List
 
 from omegaconf import II
 
-from fairseq.dataclass import FairseqDataclass
-from fairseq.optim.lr_scheduler import FairseqLRScheduler, register_lr_scheduler
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.optim.lr_scheduler import FairseqLRScheduler, register_lr_scheduler
 
 
 @dataclass

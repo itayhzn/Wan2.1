@@ -6,8 +6,8 @@
 import logging
 from typing import Dict, Optional
 
-from fairseq.incremental_decoding_utils import with_incremental_state
-from fairseq.models import FairseqDecoder
+from SAMWISE.fairseq.incremental_decoding_utils import with_incremental_state
+from SAMWISE.fairseq.models import FairseqDecoder
 from torch import Tensor
 
 

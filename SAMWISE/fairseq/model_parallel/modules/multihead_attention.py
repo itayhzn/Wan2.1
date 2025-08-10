@@ -9,12 +9,12 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from fairseq import utils
-from fairseq.incremental_decoding_utils import with_incremental_state
-from fairseq.modules.fairseq_dropout import FairseqDropout
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.incremental_decoding_utils import with_incremental_state
+from SAMWISE.fairseq.modules.fairseq_dropout import FairseqDropout
 
 try:
-    from fairseq.model_parallel.megatron.mpu import (
+    from SAMWISE.fairseq.model_parallel.megatron.mpu import (
         ColumnParallelLinear,
         RowParallelLinear,
         get_cuda_rng_tracker,

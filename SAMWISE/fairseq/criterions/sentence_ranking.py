@@ -7,9 +7,9 @@ import math
 
 import torch
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.logging import metrics
-from fairseq.criterions import FairseqCriterion, register_criterion
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.criterions import FairseqCriterion, register_criterion
 
 
 @register_criterion("sentence_ranking")

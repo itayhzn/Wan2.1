@@ -11,7 +11,7 @@ import math
 import torch
 from torch import nn
 
-from fairseq.modules.rotary_positional_embedding import (
+from SAMWISE.fairseq.modules.rotary_positional_embedding import (
     RotaryPositionalEmbedding,
     apply_rotary_pos_emb,
 )

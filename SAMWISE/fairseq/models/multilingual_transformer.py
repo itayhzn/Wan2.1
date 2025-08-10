@@ -5,20 +5,20 @@
 
 from collections import OrderedDict
 
-from fairseq import utils
-from fairseq.models import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.models import (
     FairseqMultiModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.models.transformer import (
+from SAMWISE.fairseq.models.transformer import (
     Embedding,
     TransformerDecoder,
     TransformerEncoder,
     TransformerModel,
     base_architecture,
 )
-from fairseq.utils import safe_hasattr
+from SAMWISE.fairseq.utils import safe_hasattr
 
 
 @register_model("multilingual_transformer")
@@ -69,7 +69,7 @@ class MultilingualTransformerModel(FairseqMultiModel):
     @classmethod
     def build_model(cls, args, task):
         """Build a new model instance."""
-        from fairseq.tasks.multilingual_translation import MultilingualTranslationTask
+        from SAMWISE.fairseq.tasks.multilingual_translation import MultilingualTranslationTask
 
         assert isinstance(task, MultilingualTranslationTask)
 

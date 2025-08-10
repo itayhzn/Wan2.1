@@ -4,8 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from fairseq.data.encoders import register_bpe
-from fairseq.data.encoders.byte_utils import (
+from SAMWISE.fairseq.data.encoders import register_bpe
+from SAMWISE.fairseq.data.encoders.byte_utils import (
     SPACE,
     SPACE_ESCAPE,
     byte_encode,

@@ -8,8 +8,8 @@ import operator
 
 import torch
 import torch.nn.functional as F
-from fairseq.modules.fairseq_dropout import FairseqDropout
-from fairseq.modules.quant_noise import quant_noise
+from SAMWISE.fairseq.modules.fairseq_dropout import FairseqDropout
+from SAMWISE.fairseq.modules.quant_noise import quant_noise
 from torch import nn
 
 

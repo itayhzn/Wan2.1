@@ -9,10 +9,10 @@ from functools import lru_cache
 
 import numpy as np
 import torch
-from fairseq.dataclass.constants import DATASET_IMPL_CHOICES
-from fairseq.data.fasta_dataset import FastaDataset
-from fairseq.file_io import PathManager
-from fairseq.data.huffman import HuffmanMMapIndexedDataset, HuffmanMMapIndex
+from SAMWISE.fairseq.dataclass.constants import DATASET_IMPL_CHOICES
+from SAMWISE.fairseq.data.fasta_dataset import FastaDataset
+from SAMWISE.fairseq.file_io import PathManager
+from SAMWISE.fairseq.data.huffman import HuffmanMMapIndexedDataset, HuffmanMMapIndex
 
 from . import FairseqDataset
 
@@ -85,7 +85,7 @@ def make_dataset(path, impl, fix_lua_indexing=False, dictionary=None):
     elif impl == "mmap" and MMapIndexedDataset.exists(path):
         return MMapIndexedDataset(path)
     elif impl == "fasta" and FastaDataset.exists(path):
-        from fairseq.data.fasta_dataset import EncodedFastaDataset
+        from SAMWISE.fairseq.data.fasta_dataset import EncodedFastaDataset
 
         return EncodedFastaDataset(path, dictionary)
     elif impl == "huffman" and HuffmanMMapIndexedDataset.exists(path):

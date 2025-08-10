@@ -10,12 +10,12 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, List
 
 import torch
-from fairseq import search, tokenizer, utils
-from fairseq.logging import metrics
-from fairseq.data import Dictionary, FairseqDataset, data_utils, encoders, iterators
-from fairseq.dataclass import FairseqDataclass
-from fairseq.dataclass.utils import gen_parser_from_dataclass
-from fairseq.optim.amp_optimizer import AMPOptimizer
+from SAMWISE.fairseq import search, tokenizer, utils
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.data import Dictionary, FairseqDataset, data_utils, encoders, iterators
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.dataclass.utils import gen_parser_from_dataclass
+from SAMWISE.fairseq.optim.amp_optimizer import AMPOptimizer
 from omegaconf import DictConfig
 
 
@@ -157,7 +157,7 @@ class FairseqTask(object):
         Returns:
             a :class:`~fairseq.data.FairseqDataset` corresponding to *split*
         """
-        from fairseq.data import FairseqDataset
+        from SAMWISE.fairseq.data import FairseqDataset
 
         if split not in self.datasets:
             raise KeyError("Dataset not loaded: " + split)
@@ -350,7 +350,7 @@ class FairseqTask(object):
         Returns:
             a :class:`~fairseq.models.BaseFairseqModel` instance
         """
-        from fairseq import models, quantization_utils
+        from SAMWISE.fairseq import models, quantization_utils
 
         model = models.build_model(cfg, self, from_checkpoint)
         model = quantization_utils.quantize_model_scalar(model, cfg)
@@ -367,7 +367,7 @@ class FairseqTask(object):
         Returns:
             a :class:`~fairseq.criterions.FairseqCriterion` instance
         """
-        from fairseq import criterions
+        from SAMWISE.fairseq import criterions
 
         return criterions.build_criterion(cfg, self, from_checkpoint=from_checkpoint)
 
@@ -404,14 +404,14 @@ class FairseqTask(object):
                 https://github.com/facebookresearch/GENRE.
         """
         if getattr(args, "score_reference", False):
-            from fairseq.sequence_scorer import SequenceScorer
+            from SAMWISE.fairseq.sequence_scorer import SequenceScorer
 
             return SequenceScorer(
                 self.target_dictionary,
                 compute_alignment=getattr(args, "print_alignment", False),
             )
 
-        from fairseq.sequence_generator import (
+        from SAMWISE.fairseq.sequence_generator import (
             SequenceGenerator,
             SequenceGeneratorWithAlignment,
         )
@@ -686,7 +686,7 @@ class LegacyFairseqTask(FairseqTask):
         Returns:
             a :class:`~fairseq.models.BaseFairseqModel` instance
         """
-        from fairseq import models, quantization_utils
+        from SAMWISE.fairseq import models, quantization_utils
 
         model = models.build_model(args, self, from_checkpoint)
         model = quantization_utils.quantize_model_scalar(model, args)
@@ -703,6 +703,6 @@ class LegacyFairseqTask(FairseqTask):
         Returns:
             a :class:`~fairseq.criterions.FairseqCriterion` instance
         """
-        from fairseq import criterions
+        from SAMWISE.fairseq import criterions
 
         return criterions.build_criterion(args, self)

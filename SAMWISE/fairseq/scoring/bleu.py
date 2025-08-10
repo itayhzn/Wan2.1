@@ -9,9 +9,9 @@ import sys
 from dataclasses import dataclass, field
 
 import torch
-from fairseq.dataclass import FairseqDataclass
-from fairseq.scoring import BaseScorer, register_scorer
-from fairseq.scoring.tokenizer import EvaluationTokenizer
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.scoring import BaseScorer, register_scorer
+from SAMWISE.fairseq.scoring.tokenizer import EvaluationTokenizer
 
 
 class BleuStat(ctypes.Structure):
@@ -88,7 +88,7 @@ class Scorer(object):
         self.unk = cfg.unk
 
         try:
-            from fairseq import libbleu
+            from SAMWISE.fairseq import libbleu
         except ImportError as e:
             sys.stderr.write(
                 "ERROR: missing libbleu.so. run `pip install --editable .`\n"

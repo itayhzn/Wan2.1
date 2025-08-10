@@ -7,7 +7,7 @@
 import importlib
 import os
 
-from fairseq import registry
+from SAMWISE.fairseq import registry
 
 
 build_tokenizer, register_tokenizer, TOKENIZER_REGISTRY, _ = registry.setup_registry(

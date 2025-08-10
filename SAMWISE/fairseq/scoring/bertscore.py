@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from fairseq.dataclass import FairseqDataclass
-from fairseq.scoring import BaseScorer, register_scorer
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.scoring import BaseScorer, register_scorer
 
 
 @dataclass

@@ -6,7 +6,7 @@
 import logging
 import numpy as np
 import torch.utils.data
-from fairseq.data import data_utils
+from SAMWISE.fairseq.data import data_utils
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class FairseqDataset(torch.utils.data.Dataset, EpochListening):
         Given an ordered set of indices, return batches according to
         *max_tokens*, *max_sentences* and *required_batch_size_multiple*.
         """
-        from fairseq.data import data_utils
+        from SAMWISE.fairseq.data import data_utils
 
         fixed_shapes = self.get_batch_shapes()
         if fixed_shapes is not None:

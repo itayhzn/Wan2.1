@@ -10,7 +10,7 @@ from omegaconf import OmegaConf
 import os
 import py3_wget
 from SAMWISE.models.conditional_memory_encoder import ConditionalMemoryEncoder
-from fairseq.models.roberta import RobertaModel
+from SAMWISE.fairseq.models.roberta import RobertaModel
 from SAMWISE.models.model_utils import BackboneOutput, DecoderOutput, get_same_object_labels
 from transformers import RobertaTokenizerFast
 

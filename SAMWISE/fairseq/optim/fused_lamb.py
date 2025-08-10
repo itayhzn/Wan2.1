@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from fairseq.optim import LegacyFairseqOptimizer, register_optimizer
+from SAMWISE.fairseq.optim import LegacyFairseqOptimizer, register_optimizer
 
 
 @register_optimizer("lamb")

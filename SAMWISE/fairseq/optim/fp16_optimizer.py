@@ -9,7 +9,7 @@ from itertools import chain
 import torch
 from omegaconf import DictConfig
 
-from fairseq import optim
+from SAMWISE.fairseq import optim
 
 from .dynamic_loss_scaler import DynamicLossScaler
 

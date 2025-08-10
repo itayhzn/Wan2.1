@@ -13,9 +13,9 @@ import numpy as np
 
 import torch
 import torch.nn.functional as F
-from fairseq.data import data_utils
-from fairseq.data.fairseq_dataset import FairseqDataset
-from fairseq.data.audio.audio_utils import (
+from SAMWISE.fairseq.data import data_utils
+from SAMWISE.fairseq.data.fairseq_dataset import FairseqDataset
+from SAMWISE.fairseq.data.audio.audio_utils import (
     parse_path,
     read_from_stored_zip,
 )

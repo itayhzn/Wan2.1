@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from fairseq.data.audio.waveform_transforms import CompositeAudioWaveformTransform
+from SAMWISE.fairseq.data.audio.waveform_transforms import CompositeAudioWaveformTransform
 
 SF_AUDIO_FILE_EXTENSIONS = {".wav", ".flac", ".ogg"}
 FEATURE_OR_SF_AUDIO_FILE_EXTENSIONS = {".npy", ".wav", ".flac", ".ogg"}

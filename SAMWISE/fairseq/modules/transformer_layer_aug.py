@@ -9,8 +9,8 @@ import torch
 from numpy.random import uniform
 from torch import Tensor
 
-from fairseq.modules import LayerNorm
-from fairseq.modules.transformer_layer import TransformerDecoderLayerBase
+from SAMWISE.fairseq.modules import LayerNorm
+from SAMWISE.fairseq.modules.transformer_layer import TransformerDecoderLayerBase
 
 
 class AugTransformerDecoderLayerBase(TransformerDecoderLayerBase):

@@ -6,9 +6,9 @@
 import torch.nn as nn
 import torch
 import sys
-from fairseq import utils
-from fairseq.distributed import utils as distributed_utils
-from fairseq.modules.layer_norm import LayerNorm
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.distributed import utils as distributed_utils
+from SAMWISE.fairseq.modules.layer_norm import LayerNorm
 
 
 class BaseLayer(nn.Module):
@@ -109,7 +109,7 @@ class BaseLayer(nn.Module):
 
     def load_assignment(self):
         try:
-            from fairseq import libbase
+            from SAMWISE.fairseq import libbase
 
             return libbase
 

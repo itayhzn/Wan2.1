@@ -2,8 +2,8 @@ from pathlib import Path
 import numpy as np
 from math import ceil
 
-from fairseq.data.audio import rand_uniform
-from fairseq.data.audio.waveform_transforms import (
+from SAMWISE.fairseq.data.audio import rand_uniform
+from SAMWISE.fairseq.data.audio.waveform_transforms import (
     AudioWaveformTransform,
     register_audio_waveform_transform,
 )
@@ -65,7 +65,7 @@ class NoiseAugmentTransform(AudioWaveformTransform):
         )
 
     def pick_sample(self, goal_shape, always_2d=False, use_sample_rate=None):
-        from fairseq.data.audio.audio_utils import get_waveform
+        from SAMWISE.fairseq.data.audio.audio_utils import get_waveform
 
         path = self.paths[np.random.randint(0, self.n_samples)]
         sample = get_waveform(

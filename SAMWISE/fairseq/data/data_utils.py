@@ -18,8 +18,8 @@ import math
 import numpy as np
 import torch
 
-from fairseq.file_io import PathManager
-from fairseq import utils
+from SAMWISE.fairseq.file_io import PathManager
+from SAMWISE.fairseq import utils
 import os
 
 logger = logging.getLogger(__name__)
@@ -87,8 +87,8 @@ def load_indexed_dataset(
             combine 'data-bin/train', 'data-bin/train1', ... and return a
             single ConcatDataset instance.
     """
-    import fairseq.data.indexed_dataset as indexed_dataset
-    from fairseq.data.concat_dataset import ConcatDataset
+    import SAMWISE.fairseq.data.indexed_dataset as indexed_dataset
+    from SAMWISE.fairseq.data.concat_dataset import ConcatDataset
 
     datasets = []
     for k in itertools.count():
@@ -310,7 +310,7 @@ def batch_by_size(
             *required_batch_size_multiple* will be ignored (default: None).
     """
     try:
-        from fairseq.data.data_utils_fast import (
+        from SAMWISE.fairseq.data.data_utils_fast import (
             batch_by_size_fn,
             batch_by_size_vec,
             batch_fixed_shapes_fast,

@@ -5,9 +5,9 @@
 
 from dataclasses import dataclass, field
 
-from fairseq.data.encoders import register_bpe
-from fairseq.dataclass import FairseqDataclass
-from fairseq import file_utils
+from SAMWISE.fairseq.data.encoders import register_bpe
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq import file_utils
 
 
 @dataclass

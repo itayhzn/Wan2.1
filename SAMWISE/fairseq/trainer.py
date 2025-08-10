@@ -19,16 +19,16 @@ from typing import Any, Dict, List
 import torch
 from omegaconf import OmegaConf
 
-from fairseq import checkpoint_utils, models, optim, utils
-from fairseq.dataclass.configs import FairseqConfig
-from fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.distributed import utils as distributed_utils
-from fairseq.file_io import PathManager
-from fairseq.logging import meters, metrics
-from fairseq.models.ema import build_ema
-from fairseq.nan_detector import NanDetector
-from fairseq.optim import lr_scheduler
-from fairseq.utils import safe_hasattr
+from SAMWISE.fairseq import checkpoint_utils, models, optim, utils
+from SAMWISE.fairseq.dataclass.configs import FairseqConfig
+from SAMWISE.fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from SAMWISE.fairseq.distributed import utils as distributed_utils
+from SAMWISE.fairseq.file_io import PathManager
+from SAMWISE.fairseq.logging import meters, metrics
+from SAMWISE.fairseq.models.ema import build_ema
+from SAMWISE.fairseq.nan_detector import NanDetector
+from SAMWISE.fairseq.optim import lr_scheduler
+from SAMWISE.fairseq.utils import safe_hasattr
 
 logger = logging.getLogger(__name__)
 
@@ -1229,7 +1229,7 @@ class Trainer(object):
 
     def get_meter(self, name):
         """[deprecated] Get a specific meter by name."""
-        from fairseq import meters
+        from SAMWISE.fairseq import meters
 
         if "get_meter" not in self._warn_once:
             self._warn_once.add("get_meter")
@@ -1583,7 +1583,7 @@ class Trainer(object):
 
         xm.mark_step()
         if data is not None:
-            from fairseq.utils import xla_device_to_cpu
+            from SAMWISE.fairseq.utils import xla_device_to_cpu
 
             return xla_device_to_cpu(data)
 

@@ -8,9 +8,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import torch.nn.functional as F
-from fairseq import metrics, utils
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq import metrics, utils
+from SAMWISE.fairseq.criterions import FairseqCriterion, register_criterion
+from SAMWISE.fairseq.dataclass import FairseqDataclass
 from omegaconf import II
 
 

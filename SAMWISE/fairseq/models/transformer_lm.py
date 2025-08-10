@@ -9,20 +9,20 @@ from typing import Optional
 
 from omegaconf import II
 
-from fairseq import options, utils
-from fairseq.dataclass import ChoiceEnum, FairseqDataclass
-from fairseq.models import (
+from SAMWISE.fairseq import options, utils
+from SAMWISE.fairseq.dataclass import ChoiceEnum, FairseqDataclass
+from SAMWISE.fairseq.models import (
     FairseqLanguageModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.models.transformer import (
+from SAMWISE.fairseq.models.transformer import (
     DEFAULT_MIN_PARAMS_TO_WRAP,
     Embedding,
     TransformerDecoder,
 )
-from fairseq.modules import AdaptiveInput, CharacterTokenEmbedder
-from fairseq.utils import safe_getattr, safe_hasattr
+from SAMWISE.fairseq.modules import AdaptiveInput, CharacterTokenEmbedder
+from SAMWISE.fairseq.utils import safe_getattr, safe_hasattr
 
 DEFAULT_MAX_TARGET_POSITIONS = 1024
 

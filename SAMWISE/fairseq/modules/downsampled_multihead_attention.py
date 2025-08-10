@@ -10,8 +10,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from fairseq.modules.fairseq_dropout import FairseqDropout
-from fairseq.modules.scalar_bias import scalar_bias
+from SAMWISE.fairseq.modules.fairseq_dropout import FairseqDropout
+from SAMWISE.fairseq.modules.scalar_bias import scalar_bias
 
 
 class SingleHeadAttention(nn.Module):

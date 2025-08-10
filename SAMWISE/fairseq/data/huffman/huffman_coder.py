@@ -9,7 +9,7 @@ from collections import Counter, deque
 from dataclasses import dataclass
 
 from bitarray import bitarray, util
-from fairseq.data import Dictionary
+from SAMWISE.fairseq.data import Dictionary
 
 # basically we have to write to addressable bytes for the memory mapped
 # dataset loader. Sentences that get encoded to a length that is not a

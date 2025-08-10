@@ -8,20 +8,20 @@ import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.models import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.models import (
     FairseqEncoder,
     FairseqEncoderModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.modules import (
+from SAMWISE.fairseq.modules import (
     LayerNorm,
     SinusoidalPositionalEmbedding,
     TransformerSentenceEncoder,
 )
-from fairseq.modules.transformer_sentence_encoder import init_bert_params
-from fairseq.utils import safe_hasattr
+from SAMWISE.fairseq.modules.transformer_sentence_encoder import init_bert_params
+from SAMWISE.fairseq.utils import safe_hasattr
 
 
 logger = logging.getLogger(__name__)

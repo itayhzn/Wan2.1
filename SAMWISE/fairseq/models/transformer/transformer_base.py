@@ -11,11 +11,11 @@ from torch import Tensor
 
 import logging
 
-from fairseq import utils
-from fairseq.dataclass.utils import gen_parser_from_dataclass
-from fairseq.distributed import fsdp_wrap
-from fairseq.models import FairseqEncoderDecoderModel
-from fairseq.models.transformer import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.dataclass.utils import gen_parser_from_dataclass
+from SAMWISE.fairseq.distributed import fsdp_wrap
+from SAMWISE.fairseq.models import FairseqEncoderDecoderModel
+from SAMWISE.fairseq.models.transformer import (
     TransformerConfig,
     TransformerDecoderBase,
     TransformerEncoderBase,

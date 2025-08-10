@@ -6,8 +6,8 @@
 from argparse import Namespace
 
 from typing import Union
-from fairseq.dataclass import FairseqDataclass
-from fairseq.dataclass.utils import merge_with_parent
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.dataclass.utils import merge_with_parent
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig
 

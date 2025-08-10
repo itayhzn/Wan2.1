@@ -7,8 +7,8 @@
 import importlib
 import os
 
-from fairseq import registry
-from fairseq.criterions.fairseq_criterion import (  # noqa
+from SAMWISE.fairseq import registry
+from SAMWISE.fairseq.criterions.fairseq_criterion import (  # noqa
     FairseqCriterion,
     LegacyFairseqCriterion,
 )

@@ -5,8 +5,8 @@
 
 import re
 
-from fairseq.data.encoders import register_tokenizer
-from fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.data.encoders import register_tokenizer
+from SAMWISE.fairseq.dataclass import FairseqDataclass
 
 
 @register_tokenizer("space", dataclass=FairseqDataclass)

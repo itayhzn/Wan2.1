@@ -6,10 +6,10 @@
 import dynamicconv_cuda
 import torch
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.incremental_decoding_utils import with_incremental_state
-from fairseq.modules.fairseq_dropout import FairseqDropout
-from fairseq.modules.unfold import unfold1d
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.incremental_decoding_utils import with_incremental_state
+from SAMWISE.fairseq.modules.fairseq_dropout import FairseqDropout
+from SAMWISE.fairseq.modules.unfold import unfold1d
 from torch import nn
 from torch.autograd import Function
 

@@ -7,7 +7,7 @@ import unicodedata
 
 import sacrebleu as sb
 
-from fairseq.dataclass import ChoiceEnum
+from SAMWISE.fairseq.dataclass import ChoiceEnum
 
 SACREBLEU_V2_ABOVE = int(sb.__version__[0]) >= 2
 

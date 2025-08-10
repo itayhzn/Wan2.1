@@ -6,10 +6,10 @@
 import inspect
 from typing import Any, Dict, List
 
-from fairseq import utils
-from fairseq.logging import metrics
-from fairseq.dataclass import FairseqDataclass
-from fairseq.dataclass.utils import gen_parser_from_dataclass
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.dataclass.utils import gen_parser_from_dataclass
 from torch.nn.modules.loss import _Loss
 
 

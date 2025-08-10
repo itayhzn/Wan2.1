@@ -7,15 +7,15 @@
 import importlib
 import os
 
-from fairseq import registry
-from fairseq.optim.bmuf import FairseqBMUF  # noqa
-from fairseq.optim.fairseq_optimizer import (  # noqa
+from SAMWISE.fairseq import registry
+from SAMWISE.fairseq.optim.bmuf import FairseqBMUF  # noqa
+from SAMWISE.fairseq.optim.fairseq_optimizer import (  # noqa
     FairseqOptimizer,
     LegacyFairseqOptimizer,
 )
-from fairseq.optim.amp_optimizer import AMPOptimizer
-from fairseq.optim.fp16_optimizer import FP16Optimizer, MemoryEfficientFP16Optimizer
-from fairseq.optim.shard import shard_
+from SAMWISE.fairseq.optim.amp_optimizer import AMPOptimizer
+from SAMWISE.fairseq.optim.fp16_optimizer import FP16Optimizer, MemoryEfficientFP16Optimizer
+from SAMWISE.fairseq.optim.shard import shard_
 from omegaconf import DictConfig
 
 __all__ = [

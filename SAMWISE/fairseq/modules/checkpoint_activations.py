@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import torch
 import torch.utils.checkpoint as checkpoint
-from fairseq import utils
+from SAMWISE.fairseq import utils
 
 
 def checkpoint_wrapper(m, offload_to_cpu=False):

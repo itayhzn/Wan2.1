@@ -8,11 +8,11 @@ from collections import Counter
 from multiprocessing import Pool
 
 import torch
-from fairseq import utils
-from fairseq.data import data_utils
-from fairseq.file_chunker_utils import Chunker, find_offsets
-from fairseq.file_io import PathManager
-from fairseq.tokenizer import tokenize_line
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.data import data_utils
+from SAMWISE.fairseq.file_chunker_utils import Chunker, find_offsets
+from SAMWISE.fairseq.file_io import PathManager
+from SAMWISE.fairseq.tokenizer import tokenize_line
 
 
 class Dictionary:

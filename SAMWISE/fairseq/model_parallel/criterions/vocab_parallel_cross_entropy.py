@@ -5,13 +5,13 @@
 
 import math
 
-from fairseq import utils
-from fairseq.logging import metrics
-from fairseq.criterions import FairseqCriterion, register_criterion
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.criterions import FairseqCriterion, register_criterion
 
 
 try:
-    from fairseq.model_parallel.megatron.mpu.cross_entropy import (
+    from SAMWISE.fairseq.model_parallel.megatron.mpu.cross_entropy import (
         vocab_parallel_cross_entropy,
     )
 

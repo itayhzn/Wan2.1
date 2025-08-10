@@ -13,13 +13,13 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.data import Dictionary
-from fairseq.dataclass.utils import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.data import Dictionary
+from SAMWISE.fairseq.dataclass.utils import (
     convert_namespace_to_omegaconf,
     gen_parser_from_dataclass,
 )
-from fairseq.models import FairseqDecoder, FairseqEncoder
+from SAMWISE.fairseq.models import FairseqDecoder, FairseqEncoder
 from omegaconf import DictConfig
 from torch import Tensor
 
@@ -122,7 +122,7 @@ class BaseFairseqModel(nn.Module):
 
         self.upgrade_state_dict(state_dict)
 
-        from fairseq.checkpoint_utils import prune_state_dict
+        from SAMWISE.fairseq.checkpoint_utils import prune_state_dict
 
         new_state_dict = prune_state_dict(state_dict, model_cfg)
         return super().load_state_dict(new_state_dict, strict)
@@ -267,7 +267,7 @@ class BaseFairseqModel(nn.Module):
                 at the given path/URL. Can start with '.' or './' to reuse the
                 model archive path.
         """
-        from fairseq import hub_utils
+        from SAMWISE.fairseq import hub_utils
 
         x = hub_utils.from_pretrained(
             model_name_or_path,
@@ -469,7 +469,7 @@ class FairseqMultiModel(BaseFairseqModel):
 
         self.upgrade_state_dict(state_dict)
 
-        from fairseq.checkpoint_utils import prune_state_dict
+        from SAMWISE.fairseq.checkpoint_utils import prune_state_dict
 
         new_state_dict = prune_state_dict(state_dict, model_cfg)
         return super().load_state_dict(new_state_dict, strict)

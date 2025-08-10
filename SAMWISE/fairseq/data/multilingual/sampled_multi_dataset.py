@@ -15,8 +15,8 @@ from typing import List
 import numpy as np
 import torch
 
-from fairseq.data import FairseqDataset, data_utils
-from fairseq.distributed import utils as distributed_utils
+from SAMWISE.fairseq.data import FairseqDataset, data_utils
+from SAMWISE.fairseq.distributed import utils as distributed_utils
 
 
 def get_time_gap(s, e):

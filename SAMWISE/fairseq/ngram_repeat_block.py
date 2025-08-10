@@ -10,7 +10,7 @@ import torch
 from torch import nn
 
 try:
-    from fairseq import ngram_repeat_block_cuda
+    from SAMWISE.fairseq import ngram_repeat_block_cuda
 
     EXTENSION_BUILT = True
 except ImportError:

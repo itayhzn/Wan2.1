@@ -16,12 +16,12 @@ import torch.nn.functional as F
 
 from .. import FairseqDataset
 from ..data_utils import compute_block_mask_1d, get_buckets, get_bucketed_sizes
-from fairseq.data.audio.audio_utils import (
+from SAMWISE.fairseq.data.audio.audio_utils import (
     parse_path,
     read_from_stored_zip,
     is_sf_audio_data,
 )
-from fairseq.data.text_compressor import TextCompressor, TextCompressionLevel
+from SAMWISE.fairseq.data.text_compressor import TextCompressor, TextCompressionLevel
 
 
 logger = logging.getLogger(__name__)
@@ -372,7 +372,7 @@ class BinarizedAudioDataset(RawAudioDataset):
             **mask_compute_kwargs,
         )
 
-        from fairseq.data import data_utils, Dictionary
+        from SAMWISE.fairseq.data import data_utils, Dictionary
 
         self.fnames_dict = Dictionary.load(os.path.join(data_dir, "dict.txt"))
 

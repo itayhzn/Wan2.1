@@ -11,13 +11,13 @@ from typing import List, Optional, NamedTuple
 
 import numpy as np
 import torch
-from fairseq.data import (
+from SAMWISE.fairseq.data import (
     ConcatDataset,
     LanguagePairDataset,
     FileAudioDataset,
     data_utils,
 )
-from fairseq.data import FairseqDataset
+from SAMWISE.fairseq.data import FairseqDataset
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@
 
 from typing import Any, Dict
 
-from fairseq.distributed import utils
+from SAMWISE.fairseq.distributed import utils
 
 
 try:

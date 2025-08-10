@@ -6,7 +6,7 @@
 import numpy as np
 import torch
 
-from fairseq.data.audio.speech_to_text_dataset import S2TDataConfig
+from SAMWISE.fairseq.data.audio.speech_to_text_dataset import S2TDataConfig
 
 
 class SpeechGenerator(object):
@@ -147,7 +147,7 @@ class MultiDecoderSpeechGenerator(SpeechGenerator):
         self.eos_mt = eos_mt
 
         from examples.speech_to_speech.unity.sequence_generator import SequenceGenerator
-        from fairseq import search
+        from SAMWISE.fairseq import search
 
         self.text_generator = SequenceGenerator(
             models,

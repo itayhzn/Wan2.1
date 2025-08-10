@@ -145,7 +145,7 @@ def cached_path_from_pm(url_or_filename):
     Returns the cached path if success otherwise failure.
     """
     try:
-        from fairseq.file_io import PathManager
+        from SAMWISE.fairseq.file_io import PathManager
 
         local_path = PathManager.get_local_path(url_or_filename)
         return local_path

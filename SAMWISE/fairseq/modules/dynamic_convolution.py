@@ -8,12 +8,12 @@ from typing import Dict, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.incremental_decoding_utils import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.incremental_decoding_utils import (
     FairseqIncrementalState,
     with_incremental_state,
 )
-from fairseq.modules.fairseq_dropout import FairseqDropout
+from SAMWISE.fairseq.modules.fairseq_dropout import FairseqDropout
 from torch import Tensor
 
 from .unfold import unfold1d
@@ -34,7 +34,7 @@ def DynamicConv(
 ):
     if torch.cuda.is_available():
         try:
-            from fairseq.modules.dynamicconv_layer import DynamicconvLayer
+            from SAMWISE.fairseq.modules.dynamicconv_layer import DynamicconvLayer
 
             return DynamicconvLayer(
                 input_size,

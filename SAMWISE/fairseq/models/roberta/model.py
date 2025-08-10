@@ -12,18 +12,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from fairseq import utils
-from fairseq.models import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.models import (
     FairseqEncoder,
     FairseqEncoderModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.models.transformer import DEFAULT_MIN_PARAMS_TO_WRAP, TransformerEncoder
-from fairseq.modules import LayerNorm
-from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
-from fairseq.modules.transformer_sentence_encoder import init_bert_params
-from fairseq.utils import safe_getattr, safe_hasattr
+from SAMWISE.fairseq.models.transformer import DEFAULT_MIN_PARAMS_TO_WRAP, TransformerEncoder
+from SAMWISE.fairseq.modules import LayerNorm
+from SAMWISE.fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
+from SAMWISE.fairseq.modules.transformer_sentence_encoder import init_bert_params
+from SAMWISE.fairseq.utils import safe_getattr, safe_hasattr
 
 from .hub_interface import RobertaHubInterface
 
@@ -364,7 +364,7 @@ class RobertaModel(FairseqEncoderModel):
         bpe="gpt2",
         **kwargs,
     ):
-        from fairseq import hub_utils
+        from SAMWISE.fairseq import hub_utils
 
         x = hub_utils.from_pretrained(
             model_name_or_path,

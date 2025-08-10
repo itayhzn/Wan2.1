@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from fairseq.data import encoders
+from SAMWISE.fairseq.data import encoders
 
 
 def get_whole_word_mask(args, dictionary):

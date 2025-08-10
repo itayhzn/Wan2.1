@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Optional
 
-from fairseq.data import Dictionary
+from SAMWISE.fairseq.data import Dictionary
 
 logger = logging.getLogger(__name__)
 
@@ -301,12 +301,12 @@ class SingleTaskConfig(object):
     def criterion_cfg(self):
         """cfg for the multitask criterion"""
         if self.decoder_type == "ctc":
-            from fairseq.criterions.ctc import CtcCriterionConfig
+            from SAMWISE.fairseq.criterions.ctc import CtcCriterionConfig
 
             cfg = CtcCriterionConfig
             cfg.zero_infinity = self.config.get("zero_infinity", True)
         else:
-            from fairseq.criterions.label_smoothed_cross_entropy import (
+            from SAMWISE.fairseq.criterions.label_smoothed_cross_entropy import (
                 LabelSmoothedCrossEntropyCriterionConfig,
             )
 

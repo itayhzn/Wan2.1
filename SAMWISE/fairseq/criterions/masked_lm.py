@@ -8,10 +8,10 @@ import math
 from omegaconf import II
 
 import torch
-from fairseq import modules, utils
-from fairseq.logging import metrics
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq import modules, utils
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.criterions import FairseqCriterion, register_criterion
+from SAMWISE.fairseq.dataclass import FairseqDataclass
 
 
 @dataclass

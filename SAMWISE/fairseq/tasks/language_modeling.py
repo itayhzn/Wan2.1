@@ -10,8 +10,8 @@ from typing import Optional
 
 import numpy as np
 import torch
-from fairseq import utils
-from fairseq.data import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.data import (
     AppendTokenDataset,
     Dictionary,
     IdDataset,
@@ -26,10 +26,10 @@ from fairseq.data import (
     TruncatedDictionary,
     data_utils,
 )
-from fairseq.data.indexed_dataset import get_available_dataset_impl
-from fairseq.data.shorten_dataset import maybe_shorten_dataset
-from fairseq.dataclass import ChoiceEnum, FairseqDataclass
-from fairseq.tasks import LegacyFairseqTask, register_task
+from SAMWISE.fairseq.data.indexed_dataset import get_available_dataset_impl
+from SAMWISE.fairseq.data.shorten_dataset import maybe_shorten_dataset
+from SAMWISE.fairseq.dataclass import ChoiceEnum, FairseqDataclass
+from SAMWISE.fairseq.tasks import LegacyFairseqTask, register_task
 from omegaconf import II
 
 

@@ -13,8 +13,8 @@ from dataclasses import _MISSING_TYPE, MISSING, is_dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-from fairseq.dataclass import FairseqDataclass
-from fairseq.dataclass.configs import FairseqConfig
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.dataclass.configs import FairseqConfig
 from hydra.core.global_hydra import GlobalHydra
 from hydra.experimental import compose, initialize
 from omegaconf import DictConfig, OmegaConf, open_dict, _utils
@@ -314,7 +314,7 @@ def override_module_args(args: Namespace) -> Tuple[List[str], List[str]]:
 
     if args is not None:
         if hasattr(args, "task"):
-            from fairseq.tasks import TASK_DATACLASS_REGISTRY
+            from SAMWISE.fairseq.tasks import TASK_DATACLASS_REGISTRY
 
             migrate_registry(
                 "task", args.task, TASK_DATACLASS_REGISTRY, args, overrides, deletes
@@ -326,7 +326,7 @@ def override_module_args(args: Namespace) -> Tuple[List[str], List[str]]:
         # so we can populate them with the entire flat args
         CORE_REGISTRIES = {"criterion", "optimizer", "lr_scheduler"}
 
-        from fairseq.registry import REGISTRIES
+        from SAMWISE.fairseq.registry import REGISTRIES
 
         for k, v in REGISTRIES.items():
             if hasattr(args, k):
@@ -344,7 +344,7 @@ def override_module_args(args: Namespace) -> Tuple[List[str], List[str]]:
 
         no_dc = True
         if hasattr(args, "arch"):
-            from fairseq.models import ARCH_MODEL_REGISTRY, ARCH_MODEL_NAME_REGISTRY
+            from SAMWISE.fairseq.models import ARCH_MODEL_REGISTRY, ARCH_MODEL_NAME_REGISTRY
 
             if args.arch in ARCH_MODEL_REGISTRY:
                 m_cls = ARCH_MODEL_REGISTRY[args.arch]
@@ -415,25 +415,25 @@ def convert_namespace_to_omegaconf(args: Namespace) -> DictConfig:
     with omegaconf_no_object_check():
         if cfg.task is None and getattr(args, "task", None):
             cfg.task = Namespace(**vars(args))
-            from fairseq.tasks import TASK_REGISTRY
+            from SAMWISE.fairseq.tasks import TASK_REGISTRY
 
             _set_legacy_defaults(cfg.task, TASK_REGISTRY[args.task])
             cfg.task._name = args.task
         if cfg.model is None and getattr(args, "arch", None):
             cfg.model = Namespace(**vars(args))
-            from fairseq.models import ARCH_MODEL_REGISTRY
+            from SAMWISE.fairseq.models import ARCH_MODEL_REGISTRY
 
             _set_legacy_defaults(cfg.model, ARCH_MODEL_REGISTRY[args.arch])
             cfg.model._name = args.arch
         if cfg.optimizer is None and getattr(args, "optimizer", None):
             cfg.optimizer = Namespace(**vars(args))
-            from fairseq.optim import OPTIMIZER_REGISTRY
+            from SAMWISE.fairseq.optim import OPTIMIZER_REGISTRY
 
             _set_legacy_defaults(cfg.optimizer, OPTIMIZER_REGISTRY[args.optimizer])
             cfg.optimizer._name = args.optimizer
         if cfg.lr_scheduler is None and getattr(args, "lr_scheduler", None):
             cfg.lr_scheduler = Namespace(**vars(args))
-            from fairseq.optim.lr_scheduler import LR_SCHEDULER_REGISTRY
+            from SAMWISE.fairseq.optim.lr_scheduler import LR_SCHEDULER_REGISTRY
 
             _set_legacy_defaults(
                 cfg.lr_scheduler, LR_SCHEDULER_REGISTRY[args.lr_scheduler]
@@ -441,7 +441,7 @@ def convert_namespace_to_omegaconf(args: Namespace) -> DictConfig:
             cfg.lr_scheduler._name = args.lr_scheduler
         if cfg.criterion is None and getattr(args, "criterion", None):
             cfg.criterion = Namespace(**vars(args))
-            from fairseq.criterions import CRITERION_REGISTRY
+            from SAMWISE.fairseq.criterions import CRITERION_REGISTRY
 
             _set_legacy_defaults(cfg.criterion, CRITERION_REGISTRY[args.criterion])
             cfg.criterion._name = args.criterion
@@ -453,7 +453,7 @@ def convert_namespace_to_omegaconf(args: Namespace) -> DictConfig:
 def overwrite_args_by_name(cfg: DictConfig, overrides: Dict[str, any]):
     # this will be deprecated when we get rid of argparse and model_overrides logic
 
-    from fairseq.registry import REGISTRIES
+    from SAMWISE.fairseq.registry import REGISTRIES
 
     with open_dict(cfg):
         for k in cfg.keys():

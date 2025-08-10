@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 import numpy as np
 from omegaconf import II, MISSING, OmegaConf
 
-from fairseq import utils
-from fairseq.data import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.data import (
     Dictionary,
     IdDataset,
     MaskTokensDataset,
@@ -25,10 +25,10 @@ from fairseq.data import (
     TokenBlockDataset,
     data_utils,
 )
-from fairseq.data.encoders.utils import get_whole_word_mask
-from fairseq.data.shorten_dataset import maybe_shorten_dataset
-from fairseq.dataclass import FairseqDataclass
-from fairseq.tasks import FairseqTask, register_task
+from SAMWISE.fairseq.data.encoders.utils import get_whole_word_mask
+from SAMWISE.fairseq.data.shorten_dataset import maybe_shorten_dataset
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.tasks import FairseqTask, register_task
 
 from .language_modeling import SAMPLE_BREAK_MODE_CHOICES, SHORTEN_METHOD_CHOICES
 

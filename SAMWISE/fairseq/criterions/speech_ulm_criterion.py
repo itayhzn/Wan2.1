@@ -7,10 +7,10 @@ import torch
 from dataclasses import dataclass, field
 
 import torch.nn.functional as F
-from fairseq.logging import metrics
-from fairseq.tasks import FairseqTask
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.tasks import FairseqTask
+from SAMWISE.fairseq.criterions import FairseqCriterion, register_criterion
+from SAMWISE.fairseq.dataclass import FairseqDataclass
 from omegaconf import II
 
 

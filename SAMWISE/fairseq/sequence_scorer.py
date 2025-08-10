@@ -6,7 +6,7 @@
 import sys
 
 import torch
-from fairseq import utils
+from SAMWISE.fairseq import utils
 
 
 class SequenceScorer(object):

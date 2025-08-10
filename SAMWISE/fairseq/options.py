@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Callable, List, Optional, Union
 
 import torch
-from fairseq import utils
-from fairseq.data.indexed_dataset import get_available_dataset_impl
-from fairseq.dataclass.configs import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.data.indexed_dataset import get_available_dataset_impl
+from SAMWISE.fairseq.dataclass.configs import (
     CheckpointConfig,
     CommonConfig,
     CommonEvalConfig,
@@ -22,10 +22,10 @@ from fairseq.dataclass.configs import (
     OptimizationConfig,
     EMAConfig,
 )
-from fairseq.dataclass.utils import gen_parser_from_dataclass
+from SAMWISE.fairseq.dataclass.utils import gen_parser_from_dataclass
 
 # this import is for backward compatibility
-from fairseq.utils import csv_str_list, eval_bool, eval_str_dict, eval_str_list  # noqa
+from SAMWISE.fairseq.utils import csv_str_list, eval_bool, eval_str_dict, eval_str_list  # noqa
 
 
 def get_preprocessing_parser(default_task="translation"):
@@ -119,7 +119,7 @@ def parse_args_and_arch(
             **{k: v for k, v in vars(args).items() if v is not None}
         )
 
-    from fairseq.models import ARCH_MODEL_REGISTRY, ARCH_CONFIG_REGISTRY, MODEL_REGISTRY
+    from SAMWISE.fairseq.models import ARCH_MODEL_REGISTRY, ARCH_CONFIG_REGISTRY, MODEL_REGISTRY
 
     # Before creating the true parser, we need to import optional user module
     # in order to eagerly import custom tasks, optimizers, architectures, etc.
@@ -153,17 +153,17 @@ def parse_args_and_arch(
             raise RuntimeError()
 
     if hasattr(args, "task"):
-        from fairseq.tasks import TASK_REGISTRY
+        from SAMWISE.fairseq.tasks import TASK_REGISTRY
 
         TASK_REGISTRY[args.task].add_args(parser)
     if getattr(args, "use_bmuf", False):
         # hack to support extra args for block distributed data parallelism
-        from fairseq.optim.bmuf import FairseqBMUF
+        from SAMWISE.fairseq.optim.bmuf import FairseqBMUF
 
         FairseqBMUF.add_args(parser)
 
     # Add *-specific args to parser.
-    from fairseq.registry import REGISTRIES
+    from SAMWISE.fairseq.registry import REGISTRIES
 
     for registry_name, REGISTRY in REGISTRIES.items():
         choice = getattr(args, registry_name, None)
@@ -236,7 +236,7 @@ def get_parser(desc, default_task="translation"):
     parser = argparse.ArgumentParser(allow_abbrev=False)
     gen_parser_from_dataclass(parser, CommonConfig())
 
-    from fairseq.registry import REGISTRIES
+    from SAMWISE.fairseq.registry import REGISTRIES
 
     for registry_name, REGISTRY in REGISTRIES.items():
         parser.add_argument(
@@ -246,7 +246,7 @@ def get_parser(desc, default_task="translation"):
         )
 
     # Task definitions can be found under fairseq/tasks/
-    from fairseq.tasks import TASK_REGISTRY
+    from SAMWISE.fairseq.tasks import TASK_REGISTRY
 
     parser.add_argument(
         "--task",
@@ -385,7 +385,7 @@ def add_model_args(parser):
     # 1) model defaults (lowest priority)
     # 2) --arch argument
     # 3) --encoder/decoder-* arguments (highest priority)
-    from fairseq.models import ARCH_MODEL_REGISTRY
+    from SAMWISE.fairseq.models import ARCH_MODEL_REGISTRY
     group.add_argument('--arch', '-a', metavar='ARCH',
                        choices=ARCH_MODEL_REGISTRY.keys(),
                        help='model architecture')

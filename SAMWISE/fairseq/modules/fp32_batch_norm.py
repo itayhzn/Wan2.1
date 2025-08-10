@@ -14,7 +14,7 @@ class Fp32BatchNorm(nn.Module):
         super().__init__()
 
         if sync:
-            from fairseq.distributed import utils
+            from SAMWISE.fairseq.distributed import utils
 
             if utils.get_global_world_size() == 1:
                 sync = False

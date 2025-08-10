@@ -18,22 +18,22 @@ from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import torch
-from fairseq.data import data_utils
-from fairseq.dataclass.configs import CheckpointConfig
-from fairseq.dataclass.utils import (
+from SAMWISE.fairseq.data import data_utils
+from SAMWISE.fairseq.dataclass.configs import CheckpointConfig
+from SAMWISE.fairseq.dataclass.utils import (
     convert_namespace_to_omegaconf,
     overwrite_args_by_name,
 )
-from fairseq.distributed.fully_sharded_data_parallel import FSDP, has_FSDP
-from fairseq.file_io import PathManager
-from fairseq.models import FairseqDecoder, FairseqEncoder
+from SAMWISE.fairseq.distributed.fully_sharded_data_parallel import FSDP, has_FSDP
+from SAMWISE.fairseq.file_io import PathManager
+from SAMWISE.fairseq.models import FairseqDecoder, FairseqEncoder
 from omegaconf import DictConfig, OmegaConf, open_dict
 
 logger = logging.getLogger(__name__)
 
 
 def save_checkpoint(cfg: CheckpointConfig, trainer, epoch_itr, val_loss):
-    from fairseq import meters
+    from SAMWISE.fairseq import meters
 
     # only one worker should attempt to create the required dir
     if trainer.data_parallel_rank == 0:
@@ -427,7 +427,7 @@ def load_model_ensemble_and_task(
 ):
     assert state is None or len(filenames) == 1
 
-    from fairseq import tasks
+    from SAMWISE.fairseq import tasks
 
     assert not (
         strict and num_shards > 1

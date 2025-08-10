@@ -23,7 +23,7 @@ except Exception:
 class MultiprocessingPdb(pdb.Pdb):
     """A Pdb wrapper that works in a multiprocessing environment.
 
-    Usage: `from fairseq import pdb; pdb.set_trace()`
+    Usage: `from SAMWISE.fairseq import pdb; pdb.set_trace()`
     """
 
     def __init__(self):

@@ -9,9 +9,9 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 
 import torch.optim
-from fairseq.dataclass import FairseqDataclass
-from fairseq.optim import FairseqOptimizer, register_optimizer, _build_optimizer
-from fairseq.optim.lr_scheduler import FairseqLRScheduler, build_lr_scheduler
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.optim import FairseqOptimizer, register_optimizer, _build_optimizer
+from SAMWISE.fairseq.optim.lr_scheduler import FairseqLRScheduler, build_lr_scheduler
 from omegaconf import II, open_dict
 import copy
 

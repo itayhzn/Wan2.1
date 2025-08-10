@@ -16,9 +16,9 @@ except ImportError:
 
 __all__ = ["pdb"]
 
-# backwards compatibility to support `from fairseq.X import Y`
-from fairseq.distributed import utils as distributed_utils
-from fairseq.logging import meters, metrics, progress_bar  # noqa
+# backwards compatibility to support `from SAMWISE.fairseq.X import Y`
+from SAMWISE.fairseq.distributed import utils as distributed_utils
+from SAMWISE.fairseq.logging import meters, metrics, progress_bar  # noqa
 
 sys.modules["fairseq.distributed_utils"] = distributed_utils
 sys.modules["fairseq.meters"] = meters
@@ -26,20 +26,20 @@ sys.modules["fairseq.metrics"] = metrics
 sys.modules["fairseq.progress_bar"] = progress_bar
 
 # initialize hydra
-from fairseq.dataclass.initialize import hydra_init
+from SAMWISE.fairseq.dataclass.initialize import hydra_init
 
 hydra_init()
 
-import fairseq.criterions  # noqa
-import fairseq.distributed  # noqa
-import fairseq.models  # noqa
-import fairseq.modules  # noqa
-import fairseq.optim  # noqa
-# import fairseq.optim.lr_scheduler  # noqa
-import fairseq.pdb  # noqa
-import fairseq.scoring  # noqa
-import fairseq.tasks  # noqa
-import fairseq.token_generation_constraints  # noqa
+import SAMWISE.fairseq.criterions  # noqa
+import SAMWISE.fairseq.distributed  # noqa
+import SAMWISE.fairseq.models  # noqa
+import SAMWISE.fairseq.modules  # noqa
+import SAMWISE.fairseq.optim  # noqa
+# import SAMWISE.fairseq.optim.lr_scheduler  # noqa
+import SAMWISE.fairseq.pdb  # noqa
+import SAMWISE.fairseq.scoring  # noqa
+import SAMWISE.fairseq.tasks  # noqa
+import SAMWISE.fairseq.token_generation_constraints  # noqa
 
-#import fairseq.benchmark  # noqa
-#import fairseq.model_parallel  # noqa
+#import SAMWISE.fairseq.benchmark  # noqa
+#import SAMWISE.fairseq.model_parallel  # noqa

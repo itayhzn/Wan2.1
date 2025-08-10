@@ -14,10 +14,10 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import matthews_corrcoef as _matthews_corrcoef
 from scipy.stats import pearsonr, spearmanr
 
-from fairseq.logging import metrics
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
-from fairseq.logging.meters import safe_round
+from SAMWISE.fairseq.logging import metrics
+from SAMWISE.fairseq.criterions import FairseqCriterion, register_criterion
+from SAMWISE.fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.logging.meters import safe_round
 
 
 def simple_accuracy(preds, labels):

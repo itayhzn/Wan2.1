@@ -7,7 +7,7 @@ import logging
 
 import numpy as np
 import torch
-from fairseq.data import FairseqDataset, data_utils
+from SAMWISE.fairseq.data import FairseqDataset, data_utils
 
 
 logger = logging.getLogger(__name__)
@@ -263,7 +263,7 @@ class LanguagePairDataset(FairseqDataset):
         self.src_lang_id = src_lang_id
         self.tgt_lang_id = tgt_lang_id
         if num_buckets > 0:
-            from fairseq.data import BucketPadLengthDataset
+            from SAMWISE.fairseq.data import BucketPadLengthDataset
 
             self.src = BucketPadLengthDataset(
                 self.src,

@@ -12,7 +12,7 @@ import logging
 import torch
 
 from omegaconf import II
-from fairseq.dataclass import FairseqDataclass
+from SAMWISE.fairseq.dataclass import FairseqDataclass
 
 try:
     from amp_C import multi_tensor_l2norm

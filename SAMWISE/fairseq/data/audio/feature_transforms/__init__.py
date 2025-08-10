@@ -1,5 +1,5 @@
 import os
-from fairseq.data.audio import (
+from SAMWISE.fairseq.data.audio import (
     AudioTransform,
     CompositeAudioTransform,
     import_transforms,

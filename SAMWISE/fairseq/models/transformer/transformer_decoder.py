@@ -10,11 +10,11 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from fairseq import utils
-from fairseq.distributed import fsdp_wrap
-from fairseq.models import FairseqIncrementalDecoder
-from fairseq.models.transformer import TransformerConfig
-from fairseq.modules import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.distributed import fsdp_wrap
+from SAMWISE.fairseq.models import FairseqIncrementalDecoder
+from SAMWISE.fairseq.models.transformer import TransformerConfig
+from SAMWISE.fairseq.modules import (
     AdaptiveSoftmax,
     BaseLayer,
     FairseqDropout,
@@ -24,8 +24,8 @@ from fairseq.modules import (
     SinusoidalPositionalEmbedding,
     transformer_layer,
 )
-from fairseq.modules.checkpoint_activations import checkpoint_wrapper
-from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
+from SAMWISE.fairseq.modules.checkpoint_activations import checkpoint_wrapper
+from SAMWISE.fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
 
 
 # rewrite name for backward compatibility in `make_generation_fast_`

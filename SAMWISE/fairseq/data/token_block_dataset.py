@@ -5,8 +5,8 @@
 
 import numpy as np
 import torch
-from fairseq.data import FairseqDataset, plasma_utils
-from fairseq.data.indexed_dataset import best_fitting_int_dtype
+from SAMWISE.fairseq.data import FairseqDataset, plasma_utils
+from SAMWISE.fairseq.data.indexed_dataset import best_fitting_int_dtype
 from typing import Tuple
 
 
@@ -87,7 +87,7 @@ class TokenBlockDataset(FairseqDataset):
     ) -> Tuple[np.ndarray]:
         """Use token_block_utils_fast to build arrays for indexing into self.dataset"""
         try:
-            from fairseq.data.token_block_utils_fast import (
+            from SAMWISE.fairseq.data.token_block_utils_fast import (
                 _get_slice_indices_fast,
                 _get_block_to_dataset_index_fast,
             )

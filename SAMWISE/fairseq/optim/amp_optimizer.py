@@ -6,7 +6,7 @@
 import logging
 
 import torch
-from fairseq import optim
+from SAMWISE.fairseq import optim
 from omegaconf import DictConfig
 
 logger = logging.getLogger(__name__)

@@ -10,11 +10,11 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 
-from fairseq.data import ConcatDataset, Dictionary
-from fairseq.data import data_utils as fairseq_data_utils
-from fairseq.data.audio.audio_utils import get_features_or_waveform
-from fairseq.data.audio.data_cfg import S2SDataConfig
-from fairseq.data.audio.speech_to_text_dataset import (
+from SAMWISE.fairseq.data import ConcatDataset, Dictionary
+from SAMWISE.fairseq.data import data_utils as fairseq_data_utils
+from SAMWISE.fairseq.data.audio.audio_utils import get_features_or_waveform
+from SAMWISE.fairseq.data.audio.data_cfg import S2SDataConfig
+from SAMWISE.fairseq.data.audio.speech_to_text_dataset import (
     SpeechToTextDataset,
     SpeechToTextDatasetCreator,
     TextTargetMultitaskData,

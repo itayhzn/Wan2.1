@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 
 import torch
 import torch.distributed as dist
-from fairseq.dataclass.configs import FairseqBMUFConfig
-from fairseq.dataclass.utils import gen_parser_from_dataclass
-from fairseq.optim.fairseq_optimizer import FairseqOptimizer
+from SAMWISE.fairseq.dataclass.configs import FairseqBMUFConfig
+from SAMWISE.fairseq.dataclass.utils import gen_parser_from_dataclass
+from SAMWISE.fairseq.optim.fairseq_optimizer import FairseqOptimizer
 
 
 class FairseqBMUF(FairseqOptimizer):

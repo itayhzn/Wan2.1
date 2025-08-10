@@ -9,7 +9,7 @@ import math
 
 import numpy as np
 
-from fairseq.data import SampledMultiDataset
+from SAMWISE.fairseq.data import SampledMultiDataset
 
 from .sampled_multi_dataset import CollateFormat, default_virtual_size_func
 

@@ -9,16 +9,16 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from fairseq import utils
-from fairseq.distributed import fsdp_wrap
-from fairseq.models.transformer import TransformerConfig
-from fairseq.models.transformer.transformer_decoder import TransformerDecoderBase
-from fairseq.modules import (
+from SAMWISE.fairseq import utils
+from SAMWISE.fairseq.distributed import fsdp_wrap
+from SAMWISE.fairseq.models.transformer import TransformerConfig
+from SAMWISE.fairseq.models.transformer.transformer_decoder import TransformerDecoderBase
+from SAMWISE.fairseq.modules import (
     LayerDropModuleList,
     SinusoidalPositionalEmbedding,
     transformer_layer_aug,
 )
-from fairseq.modules.checkpoint_activations import checkpoint_wrapper
+from SAMWISE.fairseq.modules.checkpoint_activations import checkpoint_wrapper
 
 
 class AugTransformerDecoderBase(TransformerDecoderBase):
