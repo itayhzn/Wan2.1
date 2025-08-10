@@ -19,6 +19,7 @@ from wan.configs import MAX_AREA_CONFIGS, SIZE_CONFIGS, SUPPORTED_SIZES, WAN_CON
 from wan.utils.prompt_extend import DashScopePromptExpander, QwenPromptExpander
 from wan.utils.utils import cache_image, cache_video, str2bool
 
+from utils import encode_params
 
 EXAMPLE_PROMPT = {
     "t2v-1.3B": {
@@ -243,6 +244,53 @@ def _parse_args():
         type=float,
         default=5.0,
         help="Classifier free guidance scale.")
+
+    parser.add_argument(
+        "--experiment_name",
+        type=str,
+        default="default",
+        help="The name of the experiment.")
+    
+    parser.add_argument(
+        "--input_path",
+        type=str,
+        default=None,
+        help="The path to the input video"
+    )
+    parser.add_argument(
+        "--subject_prompt",
+        type=str,
+        default="The main subject of the video.",
+        help="The subject prompt for the video editing task."
+    )
+    parser.add_argument(
+        "--edit_prompt",
+        type=str,
+        default="A white cat.",
+        help="The edit prompt for the video editing task."
+    )
+    
+    parser.add_argument(
+        "--input_paths",
+        type=str,
+        nargs='*',
+        default=[],
+        help="The paths to the input videos for paired generation."
+    )
+    parser.add_argument(
+        "--subject_prompts",
+        type=str,
+        nargs='*',
+        default=[],
+        help="The subject prompts for the paired generation task."
+    )
+    parser.add_argument(
+        "--edit_prompts",
+        type=str,
+        nargs='*',
+        default=[],
+        help="The edit prompts for the paired generation task."
+    )
 
     args = parser.parse_args()
 
@@ -584,4 +632,22 @@ def generate(args):
 
 if __name__ == "__main__":
     args = _parse_args()
-    generate(args)
+    for input_path, subject_prompt, edit_prompt in zip(
+            args.input_paths, args.subject_prompts, args.edit_prompts):
+        args.input_path = input_path
+        args.subject_prompt = subject_prompt
+        args.edit_prompt = edit_prompt
+        args.encoded_params = encode_params(
+            prompt=args.prompt,
+            task=args.task,
+            size=args.size,
+            ulysses_size=args.ulysses_size,
+            ring_size=args.ring_size,
+            input_path=args.input_path,
+            edit_prompt=args.edit_prompt,
+            subject_prompt=args.subject_prompt,
+            experiment_name=args.experiment_name)
+        logging.info(f"Processing input: {args.input_path}, subject: {args.subject_prompt}, edit: {args.edit_prompt}")
+        # Generate for each input path
+        args.save_file = args.encoded_params + ".mp4"
+        generate(args)

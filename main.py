@@ -1,8 +1,20 @@
 import os
 import torch
-
+import SAMWISE.samwise_interface as samwise
 
 if __name__ == "__main__":
+    text_prompts = ["the horse jumping", "the person riding the horse"]
+
+    args = samwise.get_samwise_args()
+    model = samwise.build_samwise_model(args)
+
+    input_path = 'SAMWISE/assets/example_video.mp4'  # Path to your video file
+
+    save_path_prefix = os.path.join('demo_output')
+    os.makedirs(save_path_prefix, exist_ok=True)
+
+    samwise.inference(args, model, save_path_prefix, input_path, text_prompts)
+
     # redirect output to a file
     # with open("output.txt", "w") as f:
     #     os.dup2(f.fileno(), 1)
@@ -23,6 +35,6 @@ if __name__ == "__main__":
 
     # print('Hello World!')
 
-    os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompt "A woman performing an intricate dance on stage, illuminated by a single spotlight in the first frame."   --base_seed 1024 """)
+    # os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompt "A woman performing an intricate dance on stage, illuminated by a single spotlight in the first frame."   --base_seed 1024 """)
 
     # os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "A woman performing an intricate dance on stage, illuminated by a single spotlight in the first frame."   --seeds 1024 --paired_generation "True" --addit_prompt "a cat" --experiment_name "default" """)

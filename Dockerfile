@@ -36,21 +36,23 @@ RUN cd /tmp && \
 
 ENV PATH="/root/miniconda3/bin:${PATH}"
 
+ENV CONDA_PLUGINS_AUTO_ACCEPT_TOS=true
+
 #-------------------------------------------------
 # 4) Copy environment file and create environment
 #-------------------------------------------------
-WORKDIR /storage/itaytuviah/Wan2.1
+WORKDIR /storage/itaytuviah/Project
 
 COPY environment.yml /tmp/environment.yml
 
-RUN conda env remove -n wan -y || true && \
+RUN conda env remove -n myenv -y || true && \
     conda env create -f /tmp/environment.yml -y && \
     conda clean -afy
 
 #RUN conda run -n llava_yaml pip install flash-attn --no-build-isolation --no-cache-dir
 RUN if command -v nvcc >/dev/null 2>&1; then \
         echo "✅ CUDA detected — installing flash-attn..." && \
-        conda run -n wan pip install flash-attn --no-build-isolation --no-cache-dir; \
+        conda run -n myenv pip install flash-attn --no-build-isolation --no-cache-dir; \
     else \
         echo "⚠️  Skipping flash-attn install — CUDA not found"; \
     fi
@@ -64,4 +66,4 @@ ENV DEBIAN_FRONTEND=
 # Instead of "source activate", which can be tricky in non-interactive shells,
 # use 'conda run' to ensure the environment is active when your script runs.
 # run python main.py
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "wan", "python", "main.py"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "myenv", "python", "main.py"]
