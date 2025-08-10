@@ -144,7 +144,7 @@ def inference(args, model, save_path_prefix, in_path, text_prompts):
     return 
 
 def check_args(args):
-    assert os.path.isfile(args['input_path']) or os.path.isdir(args['input_path']), f'The provided path {args['input_path']} does not exist'
+    assert os.path.isfile(args['input_path']) or os.path.isdir(args['input_path'])
     args['image_level'] = False
     if os.path.isfile(args['input_path']):
         ext = os.path.splitext(args['input_path'])[1]
