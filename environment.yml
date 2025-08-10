@@ -13,6 +13,7 @@ dependencies:
   - ftfy
   - imageio-ffmpeg
   - numpy>=1.23.5,<2
+  - setuptools
   - pip
   - pip:
       - opencv-python>=4.10.0.84

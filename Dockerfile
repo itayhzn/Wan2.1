@@ -12,9 +12,8 @@ RUN apt update && \
         ffmpeg \
         build-essential \
         curl \
-        wget
-        #  \
-        # git
+        wget \
+        git
 
 #-------------------------------------------------
 # 2) User setup
@@ -41,7 +40,7 @@ ENV CONDA_PLUGINS_AUTO_ACCEPT_TOS=true
 #-------------------------------------------------
 # 4) Copy environment file and create environment
 #-------------------------------------------------
-WORKDIR /storage/itaytuviah/Project
+WORKDIR /storage/itaytuviah/Wan2.1
 
 COPY environment.yml /tmp/environment.yml
 
@@ -51,15 +50,36 @@ RUN conda env remove -n myenv -y || true && \
 
 #RUN conda run -n llava_yaml pip install flash-attn --no-build-isolation --no-cache-dir
 RUN if command -v nvcc >/dev/null 2>&1; then \
-        echo "✅ CUDA detected — installing flash-attn..." && \
-        conda run -n myenv pip install flash-attn --no-build-isolation --no-cache-dir; \
+    echo "✅ CUDA detected — installing flash-attn..." && \
+    conda run -n myenv pip install flash-attn --no-build-isolation --no-cache-dir; \
     else \
-        echo "⚠️  Skipping flash-attn install — CUDA not found"; \
+    echo "⚠️  Skipping flash-attn install — CUDA not found"; \
     fi
+
+#-------------------------------------------------
+# 5) SAMSWISE installation
+#-------------------------------------------------
+
+WORKDIR /storage/itaytuviah/
+
+# clone https://github.com/ClaudiaCuttano/SAMWISE.git
+RUN git clone https://github.com/ClaudiaCuttano/SAMWISE.git
+
+WORKDIR /storage/itaytuviah/SAMWISE
+
+# copy all files from samwise_tools to SAMWISE
+COPY samwise_tools/ /storage/itaytuviah/SAMWISE
+
+RUN mkdir -p pretrain && \ 
+    cd pretrain && \
+    conda run -n myenv gdown --fuzzy https://drive.google.com/file/d/1Molt2up2bP41ekeczXWQU-LWTskKJOV2/view?usp=sharing && \ 
+    cd .. && \
+    conda run -n myenv pip install -e . 
+    
 
 # Set the environment variable to avoid interactive prompts during package installations
 ENV DEBIAN_FRONTEND=
-
+WORKDIR /storage/itaytuviah/Wan2.1
 #-------------------------------------------------
 # 6) Entry point
 #-------------------------------------------------
