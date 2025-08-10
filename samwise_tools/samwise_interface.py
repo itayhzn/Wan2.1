@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 import numpy as np
 import torch
-from .util import misc as utils
+from util import misc as utils
 import os
 from PIL import Image
 import torch.nn.functional as F
@@ -16,15 +16,15 @@ import json
 from tqdm import tqdm
 import sys
 from pycocotools import mask as cocomask
-from .SAMWISE.tools.colormap import colormap
-from .SAMWISE import opts as opts
-from .SAMWISE.models.samwise import build_samwise
-from .SAMWISE.util.misc import on_load_checkpoint
-from .SAMWISE.tools.metrics import db_eval_boundary, db_eval_iou
-from .SAMWISE.datasets.transform_utils import VideoEvalDataset
+from tools.colormap import colormap
+import opts
+from models.samwise import build_samwise
+from util.misc import on_load_checkpoint
+from tools.metrics import db_eval_boundary, db_eval_iou
+from datasets.transform_utils import VideoEvalDataset
 from torch.utils.data import DataLoader
 from os.path import join
-from .SAMWISE.datasets.transform_utils import vis_add_mask
+from datasets.transform_utils import vis_add_mask
 
 
 # colormap
@@ -235,5 +235,7 @@ def get_samwise_args(args=None):
             defaults[key] = value
 
     defaults['output_dir'] = os.path.join(defaults['output_dir'], defaults['name_exp'])
+
+    check_args(defaults)
 
     return defaults
