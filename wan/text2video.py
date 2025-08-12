@@ -14,6 +14,8 @@ import torch.cuda.amp as amp
 import torch.distributed as dist
 from tqdm import tqdm
 
+import numpy as np
+
 from .distributed.fsdp import shard_model
 from .modules.model import WanModel
 from .modules.t5 import T5EncoderModel
@@ -169,7 +171,7 @@ class WanT2V:
             # 1. read the video from input_path
             vid_folder, frames_list, ext = samwise.extract_frames_from_mp4(input_path)
             video = [ Image.open(os.path.join(vid_folder, frame + ext)).convert('RGB') for frame in frames_list ]
-            video = [torch.tensor(frame, dtype=torch.float32, device=self.device) for frame in video]
+            video = [ torch.tensor(np.array(frame), dtype=torch.float32, device=self.device) for frame in video ]
             video = torch.stack(video, dim=0)  # [F, H, W, C]
 
             # 2. Update output video parameters to match the input video
