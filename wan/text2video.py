@@ -181,7 +181,7 @@ class WanT2V:
             size = (video.shape[2], video.shape[1])  # (W, H)
 
             # 3. Compute the mask for the subject
-            mask = self.samwise.compute_masks(
+            mask = samwise.compute_masks(
                 self.samwise_model, subject_prompt, vid_folder, frames_list, ext, self.samwise_args
             )
 
