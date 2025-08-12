@@ -184,6 +184,13 @@ def _parse_args():
         default=None,
         help="The prompt to generate the image or video from.")
     parser.add_argument(
+        "--prompts",
+        type=str,
+        nargs='*',
+        default=None,
+        help="The prompts to generate the image or video from. Separated by space. Default None."
+    )
+    parser.add_argument(
         "--use_prompt_extend",
         action="store_true",
         default=False,
@@ -210,6 +217,13 @@ def _parse_args():
         type=int,
         default=-1,
         help="The seed to use for generating the image or video.")
+    parser.add_argument(
+        "--seeds",
+        type=int,
+        nargs='*',
+        default=None,
+        help="The seeds to use for generating the image or video. Separated by space. Default None."
+    )
     parser.add_argument(
         "--image",
         type=str,
