@@ -12,6 +12,7 @@ from functools import partial
 import torch
 import torch.cuda.amp as amp
 import torch.distributed as dist
+import torch.nn.functional as F
 from tqdm import tqdm
 
 import numpy as np
@@ -186,11 +187,6 @@ class WanT2V:
                 self.samwise_model, subject_prompt, vid_folder, frames_list, ext, self.samwise_args
             )
 
-            # 4. save the tensors for debugging
-            save_tensors(f'tensors/{encoded_params}', {
-                'video': video,
-                'mask': mask
-            })
         ##################
 
         # preprocess
@@ -198,6 +194,27 @@ class WanT2V:
         target_shape = (self.vae.model.z_dim, (F - 1) // self.vae_stride[0] + 1,
                         size[1] // self.vae_stride[1],
                         size[0] // self.vae_stride[2])
+
+        ##################
+        if edit_mode:
+            # 4. Downsample the mask to match the latent video size
+            original_mask = mask
+            mask = F.interpolate(
+                original_mask.unsqueeze(0).unsqueeze(0).float(),
+                size=(target_shape[2], target_shape[3]),
+                mode='bilinear',
+                align_corners=False
+            ).squeeze(0).squeeze(0)
+
+            # 5. save the tensors for debugging
+            save_tensors(f'tensors/{encoded_params}', {
+                'video': video,
+                'original_mask': original_mask,
+                'mask': mask
+            })
+
+            print(f"F = {F}, size = {size}, target_shape = {target_shape}, video.shape = {video.shape}, original_mask.shape = {original_mask.shape}, mask.shape = {mask.shape}")
+        ###################
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
                             (self.patch_size[1] * self.patch_size[2]) *
