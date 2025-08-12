@@ -30,8 +30,11 @@ from types import SimpleNamespace
 color_list = colormap()
 color_list = color_list.astype('uint8').tolist()
 
-def build_samwise_model(args):
+def build_samwise_model(args=None):
     
+    if not args:
+        args = get_samwise_args()
+
     pretrained_model_link = 'https://drive.google.com/file/d/1Molt2up2bP41ekeczXWQU-LWTskKJOV2/view?usp=sharing'
     assert os.path.isfile(args.resume), f"You should download the model checkpoint first. Run 'cd pretrain &&  gdown --fuzzy {pretrained_model_link}"
 
@@ -211,6 +214,13 @@ def get_samwise_args(args=None):
     defaults['output_dir'] = os.path.join(defaults['output_dir'], defaults['name_exp'])
 
     return SimpleNamespace(**defaults)
+
+def read_video(vid_folder, frames_list, ext='.png'):
+    """
+    Read video frames from a folder and return a list of frames as numpy arrays.
+    """
+    vd = VideoEvalDataset(vid_folder, frames_list, ext=ext)
+    return [frame for frame in vd]
 
 __all__ = [
     'get_samwise_args',

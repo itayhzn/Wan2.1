@@ -25,6 +25,9 @@ from .utils.fm_solvers import (
 )
 from .utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 
+import samwise
+from PIL import Image
+from utils import save_tensors
 
 class WanT2V:
 
@@ -125,7 +128,8 @@ class WanT2V:
                  edit_mode=False,
                  input_path=None,
                  subject_prompt=None,
-                 edit_prompt=None
+                 edit_prompt=None,
+                 encoded_params=None
                  ):
         r"""
         Generates video frames from text prompt using diffusion process.
@@ -160,24 +164,32 @@ class WanT2V:
                 - H: Frame height (from size)
                 - W: Frame width from size)
         """
+        ##################
+        if edit_mode:
+            # 1. read the video from input_path
+            vid_folder, frames_list, ext = samwise.extract_frames_from_mp4(input_path)
+            video = [ Image.open(os.path.join(vid_folder, frame + ext)).convert('RGB') for frame in frames_list ]
+            video = [torch.tensor(frame, dtype=torch.float32, device=self.device) for frame in video]
+            video = torch.stack(video, dim=0)  # [F, H, W, C]
 
-        # print all parameters:
-        print(f"Generating video with parameters: \n"
-                     f"\tinput_prompt={input_prompt}, "
-                     f"\tsize={size}, "
-                     f"\tframe_num={frame_num}, "
-                     f"\tshift={shift}, "
-                     f"\tsample_solver={sample_solver}, "
-                     f"\tsampling_steps={sampling_steps}, "
-                     f"\tguide_scale={guide_scale}, "
-                     f"\tn_prompt={n_prompt}, "
-                     f"\tseed={seed}, "
-                     f"\toffload_model={offload_model}, "
-                     f"\tedit_mode={edit_mode}, "
-                     f"\tinput_path={input_path}, "
-                     f"\tsubject_prompt={subject_prompt}, "
-                     f"\tedit_prompt={edit_prompt}, "
-                     )
+            # 2. Update output video parameters to match the input video
+            frame_num = video.shape[0]
+            size = (video.shape[2], video.shape[1])  # (W, H)
+
+            # 3. Compute the mask for the subject
+            if self.samwise_model is None:
+                self.samwise_model = samwise.build_samwise_model()
+            
+            mask = self.samwise.compute_masks(
+                self.samwise_model, subject_prompt, vid_folder, frames_list, ext, self.samwise_args
+            )
+
+            # 4. save the tensors for debugging
+            save_tensors(f'tensors/{encoded_params}', {
+                'video': video,
+                'mask': mask
+            })
+        ##################
 
         # preprocess
         F = frame_num

@@ -456,6 +456,7 @@ def generate(args):
             input_path=args.input_path,
             edit_prompt=args.edit_prompt,
             subject_prompt=args.subject_prompt,
+            encoded_params=args.encoded_params
             )
 
     elif "i2v" in args.task:
