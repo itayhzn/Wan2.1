@@ -255,6 +255,7 @@ class WanT2V:
             arg_null = {'context': context_null, 'seq_len': seq_len}
 
             for _, t in enumerate(tqdm(timesteps)):
+                break
                 latent_model_input = latents
                 timestep = [t]
 
