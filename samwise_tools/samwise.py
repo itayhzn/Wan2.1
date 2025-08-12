@@ -158,6 +158,7 @@ def get_samwise_args(args=None):
         "sam2_version": "base",
         "disable_pred_obj_score": False,
         "motion_prompt": False,
+        "image_level": False,  # If True, the model will run on a single image instead of a video clip
 
         # Cross Modal Temporal Adapter settings
         "HSA": True,
