@@ -1,6 +1,5 @@
 import os
 import torch
-import samwise
 
 if __name__ == "__main__":
     text_prompts = ["the horse jumping", "the person riding the horse"]
@@ -22,19 +21,6 @@ if __name__ == "__main__":
     # with open("error.txt", "w") as f:
     #     os.dup2(f.fileno(), 2)
 
-    # x = torch.randn(3,4).cuda()
-    # y = torch.randn(3,4).cuda()
-    # print("Tensor created successfully:", x.shape, y.shape)
+    os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "A woman performing an intricate dance on stage, illuminated by a single spotlight in the first frame." --seeds 1024 """)
 
-    # xyt = x @ y.T
-    # print("x @ y.T", (x @ y.T).shape)
-
-    # xy = x @ y # This will raise an error because the shapes are not aligned
-    # print("x @ y", (x @ y).shape)
-
-
-    # print('Hello World!')
-
-    # os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompt "A woman performing an intricate dance on stage, illuminated by a single spotlight in the first frame."   --base_seed 1024 """)
-
-    # os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "A woman performing an intricate dance on stage, illuminated by a single spotlight in the first frame."   --seeds 1024 --paired_generation "True" --addit_prompt "a cat" --experiment_name "default" """)
+    os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --edit_mode "True" --input_paths "/storage/itaytuviah/SAMWISE/assets/example_video.mp4" --subject_prompts "the horse jumping" --edit_prompts "a blue zebra" --seeds 1024 --experiment_name "samwise_mask" """)

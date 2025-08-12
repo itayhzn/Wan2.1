@@ -121,7 +121,12 @@ class WanT2V:
                  guide_scale=5.0,
                  n_prompt="",
                  seed=-1,
-                 offload_model=True):
+                 offload_model=True,
+                 edit_mode=False,
+                 input_path=None,
+                 subject_prompt=None,
+                 edit_prompt=None
+                 ):
         r"""
         Generates video frames from text prompt using diffusion process.
 
@@ -155,6 +160,25 @@ class WanT2V:
                 - H: Frame height (from size)
                 - W: Frame width from size)
         """
+
+        # print all parameters:
+        logging.info(f"Generating video with parameters: \n"
+                     f"\tinput_prompt={input_prompt}, "
+                     f"\tsize={size}, "
+                     f"\tframe_num={frame_num}, "
+                     f"\tshift={shift}, "
+                     f"\tsample_solver={sample_solver}, "
+                     f"\tsampling_steps={sampling_steps}, "
+                     f"\tguide_scale={guide_scale}, "
+                     f"\tn_prompt={n_prompt}, "
+                     f"\tseed={seed}, "
+                     f"\toffload_model={offload_model}, "
+                     f"\tedit_mode={edit_mode}, "
+                     f"\tinput_path={input_path}, "
+                     f"\tsubject_prompt={subject_prompt}, "
+                     f"\tedit_prompt={edit_prompt}, "
+                     )
+
         # preprocess
         F = frame_num
         target_shape = (self.vae.model.z_dim, (F - 1) // self.vae_stride[0] + 1,

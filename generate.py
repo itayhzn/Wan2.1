@@ -21,6 +21,7 @@ from wan.utils.utils import cache_image, cache_video, str2bool
 
 from utils import encode_params
 
+
 EXAMPLE_PROMPT = {
     "t2v-1.3B": {
         "prompt":
@@ -250,7 +251,13 @@ def _parse_args():
         type=str,
         default="default",
         help="The name of the experiment.")
-    
+
+    parser.add_argument(
+        "--edit_mode",
+        type=str2bool,
+        default=False,
+        help="Whether to perform editing on the video.")
+
     parser.add_argument(
         "--input_path",
         type=str,
@@ -416,8 +423,11 @@ def generate(args):
             t5_cpu=args.t5_cpu,
         )
 
-        logging.info(
-            f"Generating {'image' if 't2i' in args.task else 'video'} ...")
+        if args.edit_mode:
+            logging.info("Editing video ...")
+        else:
+            logging.info(f"Generating {'image' if 't2i' in args.task else 'video'} ...")
+            
         video = wan_t2v.generate(
             args.prompt,
             size=SIZE_CONFIGS[args.size],
@@ -427,7 +437,12 @@ def generate(args):
             sampling_steps=args.sample_steps,
             guide_scale=args.sample_guide_scale,
             seed=args.base_seed,
-            offload_model=args.offload_model)
+            offload_model=args.offload_model,
+            edit_mode=args.edit_mode,
+            input_path=args.input_path,
+            edit_prompt=args.edit_prompt,
+            subject_prompt=args.subject_prompt,
+            )
 
     elif "i2v" in args.task:
         if args.prompt is None:
@@ -632,22 +647,41 @@ def generate(args):
 
 if __name__ == "__main__":
     args = _parse_args()
-    for input_path, subject_prompt, edit_prompt in zip(
-            args.input_paths, args.subject_prompts, args.edit_prompts):
-        args.input_path = input_path
-        args.subject_prompt = subject_prompt
-        args.edit_prompt = edit_prompt
-        args.encoded_params = encode_params(
-            prompt=args.prompt,
-            task=args.task,
-            size=args.size,
-            ulysses_size=args.ulysses_size,
-            ring_size=args.ring_size,
-            input_path=args.input_path,
-            edit_prompt=args.edit_prompt,
-            subject_prompt=args.subject_prompt,
-            experiment_name=args.experiment_name)
-        logging.info(f"Processing input: {args.input_path}, subject: {args.subject_prompt}, edit: {args.edit_prompt}")
-        # Generate for each input path
-        args.save_file = args.encoded_params + ".mp4"
-        generate(args)
+    if args.edit_mode:
+        for input_path, subject_prompt, edit_prompt in zip(
+                args.input_paths, args.subject_prompts, args.edit_prompts):
+            args.input_path = input_path
+            args.subject_prompt = subject_prompt
+            args.edit_prompt = edit_prompt
+            args.encoded_params = encode_params(
+                seed=args.base_seed,
+                # task=args.task,
+                # size=args.size,
+                # ulysses_size=args.ulysses_size,
+                # ring_size=args.ring_size,
+                input_path=args.input_path,
+                edit_mode=args.edit_mode,
+                edit_prompt=args.edit_prompt,
+                subject_prompt=args.subject_prompt,
+                experiment_name=args.experiment_name)
+            logging.info(f"Editing input: {args.input_path}, subject: {args.subject_prompt}, edit: {args.edit_prompt}")
+            # Generate for each input path
+            args.save_file = args.encoded_params + ".mp4"
+            generate(args)
+    else:
+        for prompt, seed in zip(args.prompts, args.seeds):
+            args.prompt = prompt
+            args.base_seed = seed
+            args.encoded_params = encode_params(
+                prompt=args.prompt,
+                seed=args.base_seed,
+                # task=args.task,
+                # size=args.size,
+                # ulysses_size=args.ulysses_size,
+                # ring_size=args.ring_size,
+                experiment_name=args.experiment_name,
+                )
+            logging.info(f"Generating prompt: {args.prompt}, seed: {args.base_seed}")
+            # Generate for each prompt
+            args.save_file = args.encoded_params + ".mp4"
+            generate(args)

@@ -8,7 +8,7 @@ from PIL import Image
 import cv2
 import uuid
 
-def encode_params(prompt, task, size, ulysses_size, ring_size, input_path=None, edit_prompt=None, subject_prompt=None, experiment_name=None):
+def encode_params(prompt=None, seed=None, task=None, size=None, ulysses_size=None, ring_size=None, edit_mode=None, input_path=None, edit_prompt=None, subject_prompt=None, experiment_name=None):
     def escape(s):
         return s.replace(" ", "_").replace("/", "_").replace(",", "_") \
                  .replace("'", "_").replace('"', "_")[:30]
@@ -19,13 +19,21 @@ def encode_params(prompt, task, size, ulysses_size, ring_size, input_path=None, 
 
     if experiment_name:
         save_file += f"{experiment_name}_"
-
-    save_file += f"{task}_{size.replace('*','x') if sys.platform=='win32' else size}_{ulysses_size}_{ring_size}"
-
-    if edit_prompt:
-        save_file += f"_INPUT_{escape(input_path)}_SUBJECT_{escape(subject_prompt)}_EDIT_{escape(edit_prompt)}"
+    if task:
+        save_file += f"{task}_"
+    if size:
+        save_file += f"{size.replace('*', 'x')}_" if sys.platform == 'win32' else f"{size}_"
+    if ulysses_size:
+        save_file += f"{ulysses_size}_"
+    if ring_size:
+        save_file += f"{ring_size}_"
+    if seed:
+        save_file += f"{seed}_"
+        
+    if edit_mode:
+        save_file += f"EDITMODE_INPUT_{escape(input_path)}_SUBJECT_{escape(subject_prompt)}_EDIT_{escape(edit_prompt)}"
     else:
-        save_file += f"_{escape(prompt)}"
+        save_file += f"GENMODE_PROMPT_{escape(prompt)}"
 
     return save_file
 
