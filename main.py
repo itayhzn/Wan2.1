@@ -2,17 +2,17 @@ import os
 import torch
 
 if __name__ == "__main__":
-    text_prompts = ["the horse jumping", "the person riding the horse"]
+    # text_prompts = ["the horse jumping", "the person riding the horse"]
 
-    args = samwise.get_samwise_args()
-    model = samwise.build_samwise_model(args)
+    # args = samwise.get_samwise_args()
+    # model = samwise.build_samwise_model(args)
 
-    input_path = '/storage/itaytuviah/SAMWISE/assets/example_video.mp4'  # Path to your video file
+    # input_path = '/storage/itaytuviah/SAMWISE/assets/example_video.mp4'  # Path to your video file
 
-    save_path_prefix = os.path.join('demo_output')
-    os.makedirs(save_path_prefix, exist_ok=True)
+    # save_path_prefix = os.path.join('demo_output')
+    # os.makedirs(save_path_prefix, exist_ok=True)
 
-    samwise.inference(args, model, save_path_prefix, input_path, text_prompts)
+    # samwise.inference(args, model, save_path_prefix, input_path, text_prompts)
 
     # redirect output to a file
     # with open("output.txt", "w") as f:
