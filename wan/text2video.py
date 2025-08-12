@@ -116,6 +116,7 @@ class WanT2V:
             self.model.to(self.device)
 
         self.sample_neg_prompt = config.sample_neg_prompt
+        self.samwise_model = samwise.build_samwise_model()
 
     def generate(self,
                  input_prompt,
@@ -180,9 +181,6 @@ class WanT2V:
             size = (video.shape[2], video.shape[1])  # (W, H)
 
             # 3. Compute the mask for the subject
-            if self.samwise_model is None:
-                self.samwise_model = samwise.build_samwise_model()
-            
             mask = self.samwise.compute_masks(
                 self.samwise_model, subject_prompt, vid_folder, frames_list, ext, self.samwise_args
             )
