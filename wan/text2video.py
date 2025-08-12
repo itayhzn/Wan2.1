@@ -162,7 +162,7 @@ class WanT2V:
         """
 
         # print all parameters:
-        logging.info(f"Generating video with parameters: \n"
+        print(f"Generating video with parameters: \n"
                      f"\tinput_prompt={input_prompt}, "
                      f"\tsize={size}, "
                      f"\tframe_num={frame_num}, "
