@@ -31,7 +31,8 @@ def encode_params(prompt=None, seed=None, task=None, size=None, ulysses_size=Non
         save_file += f"{seed}_"
         
     if edit_mode:
-        save_file += f"EDITMODE_INPUT_{escape(input_path)}_SUBJECT_{escape(subject_prompt)}_EDIT_{escape(edit_prompt)}"
+        input_path_basename = os.path.splitext(os.path.basename(input_path))[0]
+        save_file += f"EDITMODE_INPUT_{input_path_basename}_SUBJECT_{escape(subject_prompt)}_EDIT_{escape(edit_prompt)}"
     else:
         save_file += f"GENMODE_PROMPT_{escape(prompt)}"
 

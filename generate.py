@@ -652,7 +652,7 @@ def generate(args):
             logging.info(f"Saving generated video to {args.save_file}")
             cache_video(
                 tensor=video[None],
-                save_file=args.save_file,
+                save_file=os.path.join('generated', args.save_file),
                 fps=cfg.sample_fps,
                 nrow=1,
                 normalize=True,
