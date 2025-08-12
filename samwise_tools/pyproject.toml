@@ -9,10 +9,7 @@ description = "SAMWISE vendored inside Wan2.1"
 requires-python = ">=3.9"
 
 [tool.setuptools]
-# We map the *root of the repo* to a single package name: "samwise"
-packages = ["samwise"]
-package-dir = { samwise = "." }
+# Auto-discover all packages at the repo root
+packages = ["util", "models", "tools", "fairseq", "datasets", "davis2017"]
+py-modules = ["samwise"]
 include-package-data = true
-
-[tool.setuptools.exclude-package-data]
-samwise = ["*.md", "docs/*", "assets/*", "demo_output/*", "frames_example_video/*", "datasets/*", "davis2017/*", "__pycache__/*"]

@@ -17,7 +17,6 @@ from tqdm import tqdm
 import sys
 from pycocotools import mask as cocomask
 from tools.colormap import colormap
-import opts
 from models.samwise import build_samwise
 from util.misc import on_load_checkpoint
 from tools.metrics import db_eval_boundary, db_eval_iou
@@ -25,7 +24,7 @@ from datasets.transform_utils import VideoEvalDataset
 from torch.utils.data import DataLoader
 from os.path import join
 from datasets.transform_utils import vis_add_mask
-
+from types import SimpleNamespace
 
 # colormap
 color_list = colormap()
@@ -34,13 +33,13 @@ color_list = color_list.astype('uint8').tolist()
 def build_samwise_model(args):
     
     pretrained_model_link = 'https://drive.google.com/file/d/1Molt2up2bP41ekeczXWQU-LWTskKJOV2/view?usp=sharing'
-    assert os.path.isfile(args['resume']), f"You should download the model checkpoint first. Run 'cd pretrain &&  gdown --fuzzy {pretrained_model_link}"
+    assert os.path.isfile(args.resume), f"You should download the model checkpoint first. Run 'cd pretrain &&  gdown --fuzzy {pretrained_model_link}"
 
     model = build_samwise(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
-    checkpoint = torch.load(args['resume'], map_location='cpu')
+    checkpoint = torch.load(args.resume, map_location='cpu')
     if list(checkpoint['model'].keys())[0].startswith('module'):
         checkpoint['model'] = {k.replace('module.', ''): v for k, v in checkpoint['model'].items()}        
     checkpoint = on_load_checkpoint(model, checkpoint)
@@ -70,14 +69,14 @@ def extract_frames_from_mp4(video_path):
 def compute_masks(model, text_prompt, frames_folder, frames_list, ext, args):
     all_pred_masks = []
     vd = VideoEvalDataset(frames_folder, frames_list, ext=ext)
-    dl = DataLoader(vd, batch_size=args['eval_clip_window'], num_workers=args['num_workers'], shuffle=False)
+    dl = DataLoader(vd, batch_size=args.eval_clip_window, num_workers=args.num_workers, shuffle=False)
     origin_w, origin_h = vd.origin_w, vd.origin_h
     # 3. for each clip
     for imgs, clip_frames_ids in tqdm(dl):
         clip_frames_ids = clip_frames_ids.tolist()
-        imgs = imgs.to(args['device'])  # [eval_clip_window, 3, h, w]
+        imgs = imgs.to(args.device)  # [eval_clip_window, 3, h, w]
         img_h, img_w = imgs.shape[-2:]
-        size = torch.as_tensor([int(img_h), int(img_w)]).to(args['device'])
+        size = torch.as_tensor([int(img_h), int(img_w)]).to(args.device)
         target = {"size": size, 'frame_ids': clip_frames_ids}
 
         with torch.no_grad():
@@ -86,7 +85,7 @@ def compute_masks(model, text_prompt, frames_folder, frames_list, ext, args):
         pred_masks = outputs["pred_masks"]  # [t, q, h, w]
         pred_masks = pred_masks.unsqueeze(0)
         pred_masks = F.interpolate(pred_masks, size=(origin_h, origin_w), mode='bilinear', align_corners=False)
-        pred_masks = (pred_masks.sigmoid() > args['threshold'])[0].cpu()
+        pred_masks = (pred_masks.sigmoid() > args.threshold)[0].cpu()
         all_pred_masks.append(pred_masks)
 
     # store the video results
@@ -97,9 +96,9 @@ def compute_masks(model, text_prompt, frames_folder, frames_list, ext, args):
 
 def inference(args, model, save_path_prefix, in_path, text_prompts):
     # load data
-    if os.path.isfile(in_path) and not args['image_level']:
+    if os.path.isfile(in_path) and not args.image_level:
         frames_folder, frames_list, ext = extract_frames_from_mp4(in_path)
-    elif os.path.isfile(in_path) and args['image_level']:
+    elif os.path.isfile(in_path) and args.image_level:
         fname, ext = os.path.splitext(in_path)
         frames_list = [os.path.basename(fname)]
         frames_folder = os.path.dirname(in_path)
@@ -133,7 +132,7 @@ def inference(args, model, save_path_prefix, in_path, text_prompts):
             source_img.save(save_visualize_path)
             out_files_w_mask.append(save_visualize_path)
 
-        if not args['image_level']:
+        if not args.image_level:
             # Create the video clip from images
             from moviepy import ImageSequenceClip
             clip = ImageSequenceClip(out_files_w_mask, fps=10)
@@ -142,32 +141,6 @@ def inference(args, model, save_path_prefix, in_path, text_prompts):
 
     print(f'Output masks and videos can be found in {save_path_prefix}')
     return 
-
-def check_args(args):
-    assert os.path.isfile(args['input_path']) or os.path.isdir(args['input_path'])
-    args['image_level'] = False
-    if os.path.isfile(args['input_path']):
-        ext = os.path.splitext(args['input_path'])[1]
-        assert ext in ['.jpg', '.png', '.mp4', '.jpeg'], f"Provided file extension should be one of ['.jpg', '.png', '.mp4']"
-        if ext in ['.jpg', '.png', '.jpeg']:
-            args['image_level'] = True
-            pretrained_model = 'pretrain/pretrained_model.pth'
-            pretrained_model_link = 'https://drive.google.com/file/d/1gRGzARDjIisZ3PnCW77Y9TMM_SbV8aaa/view?usp=drive_link'
-            print(f'Specified path is an image, using image-level configuration')
-
-    if not args['image_level']: # it's video inference
-        # set default args
-        args['HSA'] = True
-        args['use_cme_head'] = False
-        pretrained_model = 'pretrain/final_model_mevis.pth'
-        pretrained_model_link = 'https://drive.google.com/file/d/1Molt2up2bP41ekeczXWQU-LWTskKJOV2/view?usp=sharing'
-        print(f'Specified path is a video or folder with frames, using video-level configuration')
-
-    if args['resume'] == '':
-        args['resume'] = pretrained_model
-
-    assert os.path.isfile(args['resume']), f"You should download the model checkpoint first. Run 'cd pretrain &&  gdown --fuzzy {pretrained_model_link}"
-
 
 def get_samwise_args(args=None):
     defaults = {
@@ -187,7 +160,7 @@ def get_samwise_args(args=None):
         "motion_prompt": False,
 
         # Cross Modal Temporal Adapter settings
-        "HSA": False,
+        "HSA": True,
         "HSA_patch_size": [8, 4, 2],
         "adapter_dim": 256,
         "fusion_stages_txt": [4, 8, 12],
@@ -212,7 +185,7 @@ def get_samwise_args(args=None):
         "name_exp": "default",
         "device": "cuda",
         "seed": 0,
-        "resume": "",
+        "resume": 'pretrain/final_model_mevis.pth',
         "resume_optimizer": False,
         "start_epoch": 0,
         "eval": False,
@@ -236,6 +209,12 @@ def get_samwise_args(args=None):
 
     defaults['output_dir'] = os.path.join(defaults['output_dir'], defaults['name_exp'])
 
-    check_args(defaults)
+    return SimpleNamespace(**defaults)
 
-    return defaults
+__all__ = [
+    'get_samwise_args',
+    'build_samwise_model',
+    'extract_frames_from_mp4',
+    'compute_masks',
+    'inference',
+]

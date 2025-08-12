@@ -62,20 +62,20 @@ RUN if command -v nvcc >/dev/null 2>&1; then \
 
 WORKDIR /storage/itaytuviah/
 
+COPY samwise_tools/ /tmp/samwise_tools/
+
 # clone https://github.com/ClaudiaCuttano/SAMWISE.git
-RUN git clone https://github.com/ClaudiaCuttano/SAMWISE.git
-
-WORKDIR /storage/itaytuviah/SAMWISE
-
-# copy all files from samwise_tools to SAMWISE
-COPY samwise_tools/ /storage/itaytuviah/SAMWISE
-
-RUN mkdir -p pretrain && \ 
+RUN cd /tmp && \
+    git clone https://github.com/ClaudiaCuttano/SAMWISE.git && \
+    cd /tmp/SAMWISE && \
+    cp -r /tmp/samwise_tools/* /tmp/SAMWISE/ && \
+    rm -rf /tmp/samwise_tools && \
+    mkdir -p pretrain && \ 
     cd pretrain && \
     conda run -n myenv gdown --fuzzy https://drive.google.com/file/d/1Molt2up2bP41ekeczXWQU-LWTskKJOV2/view?usp=sharing && \ 
-    cd .. && \
+    cd /tmp/SAMWISE && \
+    echo '--- pyproject.toml ---' && nl -ba pyproject.toml && \
     conda run -n myenv pip install -e . 
-    
 
 # Set the environment variable to avoid interactive prompts during package installations
 ENV DEBIAN_FRONTEND=

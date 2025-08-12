@@ -8,7 +8,7 @@ if __name__ == "__main__":
     args = samwise.get_samwise_args()
     model = samwise.build_samwise_model(args)
 
-    input_path = 'SAMWISE/assets/example_video.mp4'  # Path to your video file
+    input_path = '/storage/itaytuviah/SAMWISE/assets/example_video.mp4'  # Path to your video file
 
     save_path_prefix = os.path.join('demo_output')
     os.makedirs(save_path_prefix, exist_ok=True)
