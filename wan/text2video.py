@@ -312,6 +312,7 @@ class WanT2V:
             start_timestep = 7 if edit_mode else 0
 
             for idx, t in enumerate(tqdm(timesteps)):
+                timestep = [t]
                 
                 if edit_mode:
                     if idx < start_timestep:
@@ -327,7 +328,6 @@ class WanT2V:
                 arg_null['anchor_Zt'] = [anchor_Zt]
 
                 latent_model_input = latents
-                timestep = [t]
 
                 timestep = torch.stack(timestep)
 
