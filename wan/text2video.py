@@ -226,7 +226,13 @@ class WanT2V:
             # Current video shape is [F, H, W, C], VAE expects [C, F, H, W]
             latent_anchor = self.vae.encode(video.permute(3, 0, 1, 2).unsqueeze(0))  # [1, C, F, H, W]
 
-            print(f"F = {F}, size = {size}, target_shape = {target_shape}, video.shape = {video.shape}, latent_anchor.shape = {latent_anchor.shape}, original_mask.shape = {original_mask.shape}, subject_mask.shape = {subject_mask.shape}")
+            print(f"F = {F}")
+            print(f"size = {size}")
+            print(f"target_shape = {target_shape}")
+            print(f"video.shape = {video.shape}")
+            print(f"latent_anchor.shape = {latent_anchor.shape}")
+            print(f"original_mask.shape = {original_mask.shape}")
+            print(f"subject_mask.shape = {subject_mask.shape}")
         ###################
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
