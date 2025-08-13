@@ -170,6 +170,7 @@ class WanT2V:
                 - H: Frame height (from size)
                 - W: Frame width from size)
         """
+        subject_mask = None
         ##################
         if edit_mode:
             # 1. read the video from input_path
@@ -199,7 +200,7 @@ class WanT2V:
         if edit_mode:
             # 4. Downsample the mask to match the latent video size
             original_mask = torch.tensor(mask, dtype=torch.float32, device=self.device)
-            mask = TorchF.interpolate(
+            subject_mask = TorchF.interpolate(
                 original_mask.unsqueeze(0).unsqueeze(0).float(),
                 size=(target_shape[1], target_shape[2], target_shape[3]),
                 mode='trilinear',
@@ -207,13 +208,17 @@ class WanT2V:
             ).squeeze(0).squeeze(0)
 
             # 5. save the tensors for debugging
-            save_tensors(f'tensors/{encoded_params}', {
-                'video': video,
-                'original_mask': original_mask,
-                'mask': mask
-            })
+            # save_tensors(f'tensors/{encoded_params}', {
+            #     'video': video,
+            #     'original_mask': original_mask,
+            #     'subject_mask': subject_mask
+            # })
 
-            print(f"F = {F}, size = {size}, target_shape = {target_shape}, video.shape = {video.shape}, original_mask.shape = {original_mask.shape}, mask.shape = {mask.shape}")
+            # 6. encode the video. 
+            # Current video shape is [F, H, W, C], VAE expects [C, F, H, W]
+            latent_anchor = self.vae.encode(video.permute(3, 0, 1, 2)) 
+
+            print(f"F = {F}, size = {size}, target_shape = {target_shape}, video.shape = {video.shape}, latent_anchor.shape = {latent_anchor.shape}, original_mask.shape = {original_mask.shape}, subject_mask.shape = {mask.shape}")
         ###################
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
@@ -228,15 +233,18 @@ class WanT2V:
 
         if not self.t5_cpu:
             self.text_encoder.model.to(self.device)
-            context = self.text_encoder([input_prompt], self.device)
-            context_null = self.text_encoder([n_prompt], self.device)
+            context = self.text_encoder([input_prompt], self.device) if input_prompt else None
+            context_null = self.text_encoder([n_prompt], self.device) if n_prompt else None
+            edit_context = self.text_encoder([edit_prompt], self.device) if edit_prompt else None
             if offload_model:
                 self.text_encoder.model.cpu()
         else:
-            context = self.text_encoder([input_prompt], torch.device('cpu'))
-            context_null = self.text_encoder([n_prompt], torch.device('cpu'))
-            context = [t.to(self.device) for t in context]
-            context_null = [t.to(self.device) for t in context_null]
+            context = self.text_encoder([input_prompt], torch.device('cpu')) if input_prompt else None
+            context_null = self.text_encoder([n_prompt], torch.device('cpu')) if n_prompt else None
+            edit_context = self.text_encoder([edit_prompt], torch.device('cpu')) if edit_prompt else None
+            context = [t.to(self.device) for t in context] if context else None
+            context_null = [t.to(self.device) for t in context_null] if context_null else None
+            edit_context = [t.to(self.device) for t in edit_context] if edit_context else None
 
         noise = [
             torch.randn(
@@ -282,11 +290,27 @@ class WanT2V:
             # sample videos
             latents = noise
 
-            arg_c = {'context': context, 'seq_len': seq_len}
-            arg_null = {'context': context_null, 'seq_len': seq_len}
+            arg_c = {'context': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_mask': subject_mask, 'edit_mode': edit_mode}
+            arg_null = {'context': context_null, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_mask': subject_mask, 'edit_mode': edit_mode}
 
-            for _, t in enumerate(tqdm(timesteps)):
-                break
+            anchor_Zt = None
+            start_timestep = 7 if edit_mode else 0
+
+            for idx, t in enumerate(tqdm(timesteps)):
+                
+                if edit_mode:
+                    if idx < start_timestep:
+                        continue
+
+                    anchor_Zt = sample_scheduler.add_noise(
+                        video, noise[0], torch.tensor(timestep))
+                    
+                    if idx == start_timestep:
+                        latents = [anchor_Zt]
+
+                arg_c['anchor_Zt'] = anchor_Zt
+                arg_null['anchor_Zt'] = anchor_Zt
+
                 latent_model_input = latents
                 timestep = [t]
 

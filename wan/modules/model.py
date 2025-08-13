@@ -127,7 +127,7 @@ class WanSelfAttention(nn.Module):
         self.norm_q = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
         self.norm_k = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
 
-    def forward(self, x, seq_lens, grid_sizes, freqs):
+    def forward(self, x, seq_lens, grid_sizes, freqs, edit_mode=None, edit_context=None, subject_mask=None, anchor_Zt=None):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -161,7 +161,7 @@ class WanSelfAttention(nn.Module):
 
 class WanT2VCrossAttention(WanSelfAttention):
 
-    def forward(self, x, context, context_lens):
+    def forward(self, x, context, context_lens, edit_mode=None, edit_context=None, subject_mask=None, anchor_Zt=None):
         r"""
         Args:
             x(Tensor): Shape [B, L1, C]
@@ -284,6 +284,10 @@ class WanAttentionBlock(nn.Module):
         freqs,
         context,
         context_lens,
+        edit_mode=None,
+        edit_context=None,
+        subject_mask=None,
+        anchor_Zt=None
     ):
         r"""
         Args:
@@ -301,19 +305,19 @@ class WanAttentionBlock(nn.Module):
         # self-attention
         y = self.self_attn(
             self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
-            freqs)
+            freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
         with amp.autocast(dtype=torch.float32):
             x = x + y * e[2]
 
         # cross-attention & ffn function
-        def cross_attn_ffn(x, context, context_lens, e):
+        def cross_attn_ffn(x, context, context_lens, e, edit_mode=None, edit_context=None, subject_mask=None, anchor_Zt=None):
             x = x + self.cross_attn(self.norm3(x), context, context_lens)
             y = self.ffn(self.norm2(x).float() * (1 + e[4]) + e[3])
             with amp.autocast(dtype=torch.float32):
                 x = x + y * e[5]
             return x
 
-        x = cross_attn_ffn(x, context, context_lens, e)
+        x = cross_attn_ffn(x, context, context_lens, e, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
         return x
 
 
@@ -498,6 +502,10 @@ class WanModel(ModelMixin, ConfigMixin):
         seq_len,
         clip_fea=None,
         y=None,
+        edit_mode=None,
+        edit_context=None,
+        subject_mask=None,
+        anchor_Zt=None
     ):
         r"""
         Forward pass through the diffusion model
@@ -557,6 +565,17 @@ class WanModel(ModelMixin, ConfigMixin):
                     [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
                 for u in context
             ]))
+        
+        # edit_context
+        if edit_mode:
+            edit_context = self.text_embedding(
+                torch.stack([
+                    torch.cat(
+                        [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
+                    for u in edit_context
+                ]))
+            context_lens = torch.tensor(
+                [u.size(0) for u in edit_context], dtype=torch.long)
 
         if clip_fea is not None:
             context_clip = self.img_emb(clip_fea)  # bs x 257 (x2) x dim
@@ -569,7 +588,12 @@ class WanModel(ModelMixin, ConfigMixin):
             grid_sizes=grid_sizes,
             freqs=self.freqs,
             context=context,
-            context_lens=context_lens)
+            context_lens=context_lens,
+            edit_mode=edit_mode,
+            edit_context=edit_context,
+            subject_mask=subject_mask,
+            anchor_Zt=anchor_Zt
+        )
 
         for block in self.blocks:
             x = block(x, **kwargs)
