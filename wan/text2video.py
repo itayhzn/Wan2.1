@@ -201,7 +201,7 @@ class WanT2V:
             original_mask = torch.tensor(mask, dtype=torch.float32, device=self.device)
             mask = TorchF.interpolate(
                 original_mask.unsqueeze(0).unsqueeze(0).float(),
-                size=(target_shape[2], target_shape[3]),
+                size=(target_shape[1], target_shape[2], target_shape[3]),
                 mode='bilinear',
                 align_corners=False
             ).squeeze(0).squeeze(0)
