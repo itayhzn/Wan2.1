@@ -575,9 +575,11 @@ class WanModel(ModelMixin, ConfigMixin):
                     align_corners=False
                 ) # [1, 1, F_patches, H_patches, W_patches]
             subject_mask = subject_mask.flatten(2).transpose(1, 2)  # [1, L, 1]
+            subject_mask = subject_mask.unsqueeze(-1)  # [1, L, 1, 1]
+
             anchor_Zt = [self.patch_embedding(u.unsqueeze(0)) for u in anchor_Zt]
             anchor_Zt = [u.flatten(2).transpose(1, 2) for u in anchor_Zt]
-            anchor_Zt = torch.cat(anchor_Zt, dim=0)  # [B, L, C]
+            anchor_Zt = torch.cat(anchor_Zt, dim=0)  # [B, L, 1]
 
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
@@ -635,6 +637,11 @@ class WanModel(ModelMixin, ConfigMixin):
             subject_mask=subject_mask,
             anchor_Zt=anchor_Zt
         )
+
+        print("==============================")
+        print(f"x.shape: {x.shape}")
+        print(f"subject_mask.shape: {subject_mask.shape if subject_mask is not None else None}")
+        print(f"anchor_Zt.shape: {anchor_Zt.shape if anchor_Zt is not None else None}")
 
         for block in self.blocks:
             x = block(x, **kwargs)
