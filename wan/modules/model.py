@@ -541,12 +541,13 @@ class WanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
+        print("=======================================")
         print(f"x.shape = {[u.shape for u in x]}")  # [B, C, F_patches, H_patches, W_patches]
 
         print(f"subject_mask.shape = {subject_mask.shape}") # [FF, HH, WW]
         subject_mask = F.interpolate(
                 subject_mask.unsqueeze(0).unsqueeze(0).float(),
-                size=(x[0].shape[1], x[0].shape[2], x[0].shape[3]),
+                size=(x[0].shape[2], x[0].shape[3], x[0].shape[4]),
                 mode='trilinear',
                 align_corners=False
             ) # [1, 1, F_patches, H_patches, W_patches]
