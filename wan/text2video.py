@@ -188,6 +188,14 @@ class WanT2V:
                 self.samwise_model, subject_prompt, vid_folder, frames_list, ext, samwise.get_samwise_args()
             )
 
+            # delete the video folder to save space
+            if os.path.exists(vid_folder):
+                for frame in frames_list:
+                    frame_path = os.path.join(vid_folder, frame + ext)
+                    if os.path.exists(frame_path):
+                        os.remove(frame_path)
+                os.rmdir(vid_folder)
+
         ##################
 
         # preprocess
@@ -216,7 +224,7 @@ class WanT2V:
 
             # 6. encode the video. 
             # Current video shape is [F, H, W, C], VAE expects [C, F, H, W]
-            latent_anchor = self.vae.encode(video.permute(3, 0, 1, 2)) 
+            latent_anchor = self.vae.encode(video.permute(3, 0, 1, 2).unsqueeze(0))  # [1, C, F, H, W]
 
             print(f"F = {F}, size = {size}, target_shape = {target_shape}, video.shape = {video.shape}, latent_anchor.shape = {latent_anchor.shape}, original_mask.shape = {original_mask.shape}, subject_mask.shape = {mask.shape}")
         ###################
