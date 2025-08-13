@@ -4,6 +4,7 @@ import math
 import torch
 import torch.cuda.amp as amp
 import torch.nn as nn
+import torch.nn.functional as F
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.modeling_utils import ModelMixin
 
@@ -540,15 +541,32 @@ class WanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
+        print(f"x.shape = {[u.shape for u in x]}")  # [B, C, F_patches, H_patches, W_patches]
+
+        print(f"subject_mask.shape = {subject_mask.shape}") # [FF, HH, WW]
+        subject_mask = F.interpolate(
+                subject_mask.unsqueeze(0).unsqueeze(0).float(),
+                size=(x[0].shape[1], x[0].shape[2], x[0].shape[3]),
+                mode='trilinear',
+                align_corners=False
+            ) # [1, 1, F_patches, H_patches, W_patches]
+
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
+        
         x = [u.flatten(2).transpose(1, 2) for u in x]
+        print(f"x.shape = {[u.shape for u in x]}")  # [B, L, C]
+        subject_mask = subject_mask.flatten(2).transpose(1, 2)  # [1, L, 1]
+        print(f"subject_mask.shape = {subject_mask.shape}") # [B, L, 1]
+
         seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
         assert seq_lens.max() <= seq_len
         x = torch.cat([
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                       dim=1) for u in x
         ])
+        print(f"x.shape = {x.shape}")  # [B, L, C]
+
 
         # time embeddings
         with amp.autocast(dtype=torch.float32):

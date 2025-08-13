@@ -208,12 +208,13 @@ class WanT2V:
         if edit_mode:
             # 4. Downsample the mask to match the latent video size
             original_mask = torch.tensor(mask, dtype=torch.float32, device=self.device)
-            subject_mask = TorchF.interpolate(
-                original_mask.unsqueeze(0).unsqueeze(0).float(),
-                size=(target_shape[1], target_shape[2], target_shape[3]),
-                mode='trilinear',
-                align_corners=False
-            ).squeeze(0).squeeze(0)
+            subject_mask = original_mask
+            # subject_mask = TorchF.interpolate(
+            #     original_mask.unsqueeze(0).unsqueeze(0).float(),
+            #     size=(target_shape[1], target_shape[2], target_shape[3]),
+            #     mode='trilinear',
+            #     align_corners=False
+            # ).squeeze(0).squeeze(0)
 
             # 5. save the tensors for debugging
             # save_tensors(f'tensors/{encoded_params}', {
