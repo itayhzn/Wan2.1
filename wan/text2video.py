@@ -226,15 +226,8 @@ class WanT2V:
             # 6. encode the video. 
             # Current video shape is [F, H, W, C], VAE expects [C, F, H, W]
             anchor_z0 = self.vae.encode(video.permute(3, 0, 1, 2).unsqueeze(0))  # [1, C, F, H, W]
-            anchor_z0 = anchor_z0[0]
+            anchor_z0 = anchor_z0[0] # [C, F, H, W]
 
-            print(f"F = {F}")
-            print(f"size = {size}")
-            print(f"target_shape = {target_shape}")
-            print(f"video.shape = {video.shape}")
-            print(f"anchor_z0.shape = {anchor_z0.shape}")
-            print(f"original_mask.shape = {original_mask.shape}")
-            print(f"subject_mask.shape = {subject_mask.shape}")
         ###################
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
@@ -320,7 +313,7 @@ class WanT2V:
                         continue
 
                     anchor_Zt = sample_scheduler.add_noise(
-                        anchor_z0, noise[0], torch.tensor(timestep))
+                        anchor_z0, noise[0], torch.tensor(timestep)) # [C, F, H, W]
                     
                     if idx == start_timestep:
                         latents = [anchor_Zt]

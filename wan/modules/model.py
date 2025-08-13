@@ -577,6 +577,7 @@ class WanModel(ModelMixin, ConfigMixin):
             subject_mask = subject_mask.flatten(2).transpose(1, 2)  # [1, L, 1]
             anchor_Zt = [self.patch_embedding(u.unsqueeze(0)) for u in anchor_Zt]
             anchor_Zt = [u.flatten(2).transpose(1, 2) for u in anchor_Zt]
+            anchor_Zt = torch.cat(anchor_Zt, dim=0)  # [B, L, C]
 
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
