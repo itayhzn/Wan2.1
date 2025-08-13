@@ -12,7 +12,7 @@ from functools import partial
 import torch
 import torch.cuda.amp as amp
 import torch.distributed as dist
-import torch.nn.functional as F
+import torch.nn.functional as TorchF
 from tqdm import tqdm
 
 import numpy as np
@@ -199,7 +199,7 @@ class WanT2V:
         if edit_mode:
             # 4. Downsample the mask to match the latent video size
             original_mask = mask
-            mask = F.interpolate(
+            mask = TorchF.interpolate(
                 original_mask.unsqueeze(0).unsqueeze(0).float(),
                 size=(target_shape[2], target_shape[3]),
                 mode='bilinear',
