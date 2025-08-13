@@ -147,12 +147,26 @@ class WanSelfAttention(nn.Module):
 
         q, k, v = qkv_fn(x)
 
-        x = flash_attention(
-            q=rope_apply(q, grid_sizes, freqs),
-            k=rope_apply(k, grid_sizes, freqs),
-            v=v,
-            k_lens=seq_lens,
-            window_size=self.window_size)
+        if edit_mode:
+            q_a, k_a, v_a = qkv_fn(anchor_Zt)
+            
+            q = q_a * subject_mask + q * (1 - subject_mask)
+            k = k_a * subject_mask + k * (1 - subject_mask)
+            v = v_a * subject_mask + v * (1 - subject_mask)
+
+            x = flash_attention(
+                q=q,
+                k=k,
+                v=v,
+                k_lens=seq_lens,
+                window_size=self.window_size)
+        else:
+            x = flash_attention(
+                q=rope_apply(q, grid_sizes, freqs),
+                k=rope_apply(k, grid_sizes, freqs),
+                v=v,
+                k_lens=seq_lens,
+                window_size=self.window_size)
 
         # output
         x = x.flatten(2)
@@ -171,13 +185,23 @@ class WanT2VCrossAttention(WanSelfAttention):
         """
         b, n, d = x.size(0), self.num_heads, self.head_dim
 
-        # compute query, key, value
-        q = self.norm_q(self.q(x)).view(b, -1, n, d)
-        k = self.norm_k(self.k(context)).view(b, -1, n, d)
-        v = self.v(context).view(b, -1, n, d)
 
         # compute attention
-        x = flash_attention(q, k, v, k_lens=context_lens)
+        if edit_mode:
+            q = self.norm_q(self.q(x)).view(b, -1, n, d)
+            q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
+            k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
+            v_edit = self.v(edit_context).view(b, -1, n, d)
+
+            q = q_a * subject_mask
+            x = flash_attention(q, k_edit, v_edit, k_lens=None)
+        else:
+            # compute query, key, value
+            q = self.norm_q(self.q(x)).view(b, -1, n, d)
+            k = self.norm_k(self.k(context)).view(b, -1, n, d)
+            v = self.v(context).view(b, -1, n, d)
+            
+            x = flash_attention(q, k, v, k_lens=context_lens)
 
         # output
         x = x.flatten(2)
@@ -541,33 +565,30 @@ class WanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
-        print("=======================================")
-        print(f"x.shape = {[u.shape for u in x]}")  # [B, C, F_patches, H_patches, W_patches]
+        
 
-        print(f"subject_mask.shape = {subject_mask.shape}") # [FF, HH, WW]
-        subject_mask = F.interpolate(
-                subject_mask.unsqueeze(0).unsqueeze(0).float(),
-                size=(x[0].shape[2], x[0].shape[3], x[0].shape[4]),
-                mode='trilinear',
-                align_corners=False
-            ) # [1, 1, F_patches, H_patches, W_patches]
+        if edit_mode:
+            subject_mask = F.interpolate(
+                    subject_mask.unsqueeze(0).unsqueeze(0).float(),
+                    size=(x[0].shape[2], x[0].shape[3], x[0].shape[4]),
+                    mode='trilinear',
+                    align_corners=False
+                ) # [1, 1, F_patches, H_patches, W_patches]
+            subject_mask = subject_mask.flatten(2).transpose(1, 2)  # [1, L, 1]
+            anchor_Zt = [self.patch_embedding(u.unsqueeze(0)) for u in anchor_Zt]
+            anchor_Zt = [u.flatten(2).transpose(1, 2) for u in anchor_Zt]
 
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
         
         x = [u.flatten(2).transpose(1, 2) for u in x]
-        print(f"x.shape = {[u.shape for u in x]}")  # [B, L, C]
-        subject_mask = subject_mask.flatten(2).transpose(1, 2)  # [1, L, 1]
-        print(f"subject_mask.shape = {subject_mask.shape}") # [B, L, 1]
-
+        
         seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
         assert seq_lens.max() <= seq_len
         x = torch.cat([
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                       dim=1) for u in x
         ])
-        print(f"x.shape = {x.shape}")  # [B, L, C]
-
 
         # time embeddings
         with amp.autocast(dtype=torch.float32):
