@@ -116,7 +116,9 @@ class WanT2V:
             self.model.to(self.device)
 
         self.sample_neg_prompt = config.sample_neg_prompt
+        
         self.samwise_model = samwise.build_samwise_model()
+        self.samwise_model.eval().requires_grad_(False)
 
     def generate(self,
                  input_prompt,
