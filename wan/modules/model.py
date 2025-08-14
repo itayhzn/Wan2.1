@@ -148,11 +148,11 @@ class WanSelfAttention(nn.Module):
         q, k, v = qkv_fn(x)
 
         if edit_mode:
-            q_a, k_a, v_a = qkv_fn(anchor_Zt)
+            # q_a, k_a, v_a = qkv_fn(anchor_Zt)
             
-            q = q_a * subject_mask + q * (1 - subject_mask)
-            k = k_a * subject_mask + k * (1 - subject_mask)
-            v = v_a 
+            q = q * subject_mask # + q * (1 - subject_mask)
+            k = k * subject_mask # + k * (1 - subject_mask)
+            v = v * subject_mask # + v * (1 - subject_mask)
 
         x = flash_attention(
             q=rope_apply(q, grid_sizes, freqs),
@@ -182,11 +182,12 @@ class WanT2VCrossAttention(WanSelfAttention):
         # compute attention
         if edit_mode:
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
-            q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
+            # q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
+            # q = q_a * subject_mask
+
             k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
             v_edit = self.v(edit_context).view(b, -1, n, d)
-
-            q = q_a * subject_mask
+            
             x = flash_attention(q, k_edit, v_edit, k_lens=None)
         else:
             # compute query, key, value
@@ -630,11 +631,6 @@ class WanModel(ModelMixin, ConfigMixin):
             subject_mask=subject_mask,
             anchor_Zt=anchor_Zt
         )
-
-        print("==============================")
-        print(f"x.shape: {x.shape}")
-        print(f"subject_mask.shape: {subject_mask.shape if subject_mask is not None else None}")
-        print(f"anchor_Zt.shape: {anchor_Zt.shape if anchor_Zt is not None else None}")
 
         for block in self.blocks:
             x = block(x, **kwargs)
