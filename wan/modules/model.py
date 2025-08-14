@@ -154,20 +154,20 @@ class WanSelfAttention(nn.Module):
             k_lens=seq_lens,
             window_size=self.window_size)
         
-        if edit_mode:
-            q_a, k_a, v_a = qkv_fn(anchor_Zt)
-            # q = q * subject_mask # + q * (1 - subject_mask)
-            # k = k * subject_mask # + k * (1 - subject_mask)
-            # v = v_a * subject_mask # + v * (1 - subject_mask)
+        # if edit_mode:
+        #     q_a, k_a, v_a = qkv_fn(anchor_Zt)
+        #     # q = q * subject_mask # + q * (1 - subject_mask)
+        #     # k = k * subject_mask # + k * (1 - subject_mask)
+        #     # v = v_a * subject_mask # + v * (1 - subject_mask)
 
-            x_a = flash_attention(
-                q=rope_apply(q_a, grid_sizes, freqs),
-                k=rope_apply(k_a, grid_sizes, freqs),
-                v=rope_apply(v_a, grid_sizes, freqs),
-                k_lens=seq_lens,
-                window_size=self.window_size)
+        #     x_a = flash_attention(
+        #         q=rope_apply(q_a, grid_sizes, freqs),
+        #         k=rope_apply(k_a, grid_sizes, freqs),
+        #         v=rope_apply(v_a, grid_sizes, freqs),
+        #         k_lens=seq_lens,
+        #         window_size=self.window_size)
             
-            x = x_a * subject_mask + x * (1 - subject_mask)
+        #     x = x_a * subject_mask + x * (1 - subject_mask)
         
         # output
         x = x.flatten(2)
@@ -191,7 +191,7 @@ class WanT2VCrossAttention(WanSelfAttention):
         if edit_mode:
             # q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
             # q = q_a * subject_mask
-
+            print("edit_context", edit_context)
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
 
             k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
@@ -201,6 +201,7 @@ class WanT2VCrossAttention(WanSelfAttention):
 
             x = x * subject_mask + anchor_Zt * (1 - subject_mask)
         else:
+            print("context", context)
             # compute query, key, value
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
             k = self.norm_k(self.k(context)).view(b, -1, n, d)
@@ -622,8 +623,8 @@ class WanModel(ModelMixin, ConfigMixin):
                         [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
                     for u in edit_context
                 ]))
-            context_lens = torch.tensor(
-                [u.size(0) for u in edit_context], dtype=torch.long)
+            # context_lens = torch.tensor(
+                # [u.size(0) for u in edit_context], dtype=torch.long)
 
         if clip_fea is not None:
             context_clip = self.img_emb(clip_fea)  # bs x 257 (x2) x dim
