@@ -191,7 +191,6 @@ class WanT2VCrossAttention(WanSelfAttention):
         if edit_mode:
             # q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
             # q = q_a * subject_mask
-            print("edit_context", edit_context)
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
 
             k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
@@ -201,7 +200,6 @@ class WanT2VCrossAttention(WanSelfAttention):
 
             x = x * subject_mask + anchor_Zt * (1 - subject_mask)
         else:
-            print("context", context)
             # compute query, key, value
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
             k = self.norm_k(self.k(context)).view(b, -1, n, d)
@@ -342,7 +340,7 @@ class WanAttentionBlock(nn.Module):
 
         # cross-attention & ffn function
         def cross_attn_ffn(x, context, context_lens, e, edit_mode=None, edit_context=None, subject_mask=None, anchor_Zt=None):
-            x = x + self.cross_attn(self.norm3(x), context, context_lens)
+            x = x + self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
             y = self.ffn(self.norm2(x).float() * (1 + e[4]) + e[3])
             with amp.autocast(dtype=torch.float32):
                 x = x + y * e[5]
@@ -570,8 +568,7 @@ class WanModel(ModelMixin, ConfigMixin):
             x = [torch.cat([u, v], dim=0) for u, v in zip(x, y)]
 
         # embeddings
-        x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
-        
+        x = [self.patch_embedding(u.unsqueeze(0)) for u in x]   
 
         if edit_mode:
             subject_mask = F.interpolate(
