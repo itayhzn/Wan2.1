@@ -186,7 +186,6 @@ class WanT2VCrossAttention(WanSelfAttention):
         """
         b, n, d = x.size(0), self.num_heads, self.head_dim
 
-
         # compute attention
         if edit_mode:
             # q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
@@ -198,7 +197,7 @@ class WanT2VCrossAttention(WanSelfAttention):
 
             x = flash_attention(q, k_edit, v_edit, k_lens=None)
 
-            x = x * subject_mask + anchor_Zt * (1 - subject_mask)
+            x = x * subject_mask
         else:
             # compute query, key, value
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
