@@ -196,7 +196,6 @@ class WanT2VCrossAttention(WanSelfAttention):
             v_edit = self.v(edit_context).view(b, -1, n, d)
 
             q = q * subject_mask
-            k_edit = k_edit * subject_mask
 
             x = flash_attention(q, k_edit, v_edit, k_lens=None)
 
