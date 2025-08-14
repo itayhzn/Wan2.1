@@ -170,6 +170,23 @@ class WanT2V:
                 - H: Frame height (from size)
                 - W: Frame width from size)
         """
+        print(f"Generation parameters:")
+        print(f"  input_prompt: {input_prompt}")
+        print(f"  size: {size}")
+        print(f"  frame_num: {frame_num}")
+        print(f"  shift: {shift}")
+        print(f"  sample_solver: {sample_solver}")
+        print(f"  sampling_steps: {sampling_steps}")
+        print(f"  guide_scale: {guide_scale}")
+        print(f"  n_prompt: {n_prompt}")
+        print(f"  seed: {seed}")
+        print(f"  offload_model: {offload_model}")
+        print(f"  edit_mode: {edit_mode}")
+        print(f"  input_path: {input_path}")
+        print(f"  subject_prompt: {subject_prompt}")
+        print(f"  edit_prompt: {edit_prompt}")
+        print(f"  encoded_params: {encoded_params}")
+
         subject_mask = None
         ##################
         if edit_mode:
