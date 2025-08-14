@@ -147,20 +147,28 @@ class WanSelfAttention(nn.Module):
 
         q, k, v = qkv_fn(x)
 
-        if edit_mode:
-            q_a, k_a, v_a = qkv_fn(anchor_Zt)
-            
-            q = q * subject_mask # + q * (1 - subject_mask)
-            k = k * subject_mask # + k * (1 - subject_mask)
-            v = v_a * subject_mask # + v * (1 - subject_mask)
-
         x = flash_attention(
             q=rope_apply(q, grid_sizes, freqs),
             k=rope_apply(k, grid_sizes, freqs),
             v=v,
             k_lens=seq_lens,
             window_size=self.window_size)
+        
+        if edit_mode:
+            q_a, k_a, v_a = qkv_fn(anchor_Zt)
+            # q = q * subject_mask # + q * (1 - subject_mask)
+            # k = k * subject_mask # + k * (1 - subject_mask)
+            # v = v_a * subject_mask # + v * (1 - subject_mask)
 
+            x_a = flash_attention(
+                q=rope_apply(q_a, grid_sizes, freqs),
+                k=rope_apply(k_a, grid_sizes, freqs),
+                v=rope_apply(v_a, grid_sizes, freqs),
+                k_lens=seq_lens,
+                window_size=self.window_size)
+            
+            x = x_a * subject_mask + x * (1 - subject_mask)
+        
         # output
         x = x.flatten(2)
         x = self.o(x)
@@ -181,14 +189,17 @@ class WanT2VCrossAttention(WanSelfAttention):
 
         # compute attention
         if edit_mode:
-            q = self.norm_q(self.q(x)).view(b, -1, n, d)
             # q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
             # q = q_a * subject_mask
+
+            q = self.norm_q(self.q(x)).view(b, -1, n, d)
 
             k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
             v_edit = self.v(edit_context).view(b, -1, n, d)
 
             x = flash_attention(q, k_edit, v_edit, k_lens=None)
+
+            x = x * subject_mask + anchor_Zt * (1 - subject_mask)
         else:
             # compute query, key, value
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
