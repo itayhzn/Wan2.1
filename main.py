@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
 
     base_seed = 1024
-    experiment_name = "contextdebug"
+    experiment_name = "simrun"
 
     # os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(edit_prompts)}" --seeds {base_seed} --experiment_name "{experiment_name}"  """)
 
