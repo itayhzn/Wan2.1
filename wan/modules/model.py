@@ -166,13 +166,16 @@ class WanSelfAttention(nn.Module):
                 v=rope_apply(v_a, grid_sizes, freqs),
                 k_lens=seq_lens,
                 window_size=self.window_size)
-            
-            x = x_a * subject_mask + x * (1 - subject_mask)
-        
+
+            # x = x_a * subject_mask + x * (1 - subject_mask)
+
+            x_a = x_a.flatten(2)
+            x_a = self.o(x_a)
+
         # output
         x = x.flatten(2)
         x = self.o(x)
-        return x
+        return x if not edit_mode else x, x_a
 
 
 class WanT2VCrossAttention(WanSelfAttention):
@@ -188,7 +191,7 @@ class WanT2VCrossAttention(WanSelfAttention):
 
         # compute attention
         if edit_mode:
-            # q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
+            q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
             # q = q_a * subject_mask
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
 
@@ -198,6 +201,10 @@ class WanT2VCrossAttention(WanSelfAttention):
             # q = q * subject_mask
 
             x = flash_attention(q, k_edit, v_edit, k_lens=None)
+
+            x_a = flash_attention(q_a, k_edit, v_edit, k_lens=None)
+            x_a = x_a.flatten(2)
+            x_a = self.o(x_a)
 
             # x = x * subject_mask
         else:
@@ -211,7 +218,7 @@ class WanT2VCrossAttention(WanSelfAttention):
         # output
         x = x.flatten(2)
         x = self.o(x)
-        return x
+        return x if not edit_mode else x, x_a
 
 
 class WanI2VCrossAttention(WanSelfAttention):
@@ -331,21 +338,42 @@ class WanAttentionBlock(nn.Module):
         with amp.autocast(dtype=torch.float32):
             e = (self.modulation + e).chunk(6, dim=1)
         assert e[0].dtype == torch.float32
+        
+        if not edit_mode:
+            # self-attention
+            y = self.self_attn(
+                self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
+                freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
+        else:
+            y, y_a = self.self_attn(
+                self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
+                freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
 
-        # self-attention
-        y = self.self_attn(
-            self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
-            freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
         with amp.autocast(dtype=torch.float32):
             x = x + y * e[2]
+            
+            if edit_mode:
+                anchor_Zt = anchor_Zt + y_a * e[2]
 
         # cross-attention & ffn function
         def cross_attn_ffn(x, context, context_lens, e, edit_mode=None, edit_context=None, subject_mask=None, anchor_Zt=None):
-            x = x + self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
+            if not edit_mode:
+                w = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
+            else:
+                w, w_a = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
+            x = x + w
+
             y = self.ffn(self.norm2(x).float() * (1 + e[4]) + e[3])
+            if edit_mode:
+                anchor_Zt = anchor_Zt + w_a 
+                y_a = self.ffn(self.norm2(anchor_Zt).float() * (1 + e[4]) + e[3])
+
             with amp.autocast(dtype=torch.float32):
                 x = x + y * e[5]
-            return x
+                if edit_mode:
+                    anchor_Zt = anchor_Zt + y_a * e[5]
+            
+            return x if not edit_mode else x, anchor_Zt
 
         x = cross_attn_ffn(x, context, context_lens, e, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
         return x
@@ -641,9 +669,15 @@ class WanModel(ModelMixin, ConfigMixin):
             subject_mask=subject_mask,
             anchor_Zt=anchor_Zt
         )
-
-        for block in self.blocks:
-            x = block(x, **kwargs)
+        
+        if not edit_mode:
+            for block in self.blocks:
+                x = block(x, **kwargs)
+        else:
+            for block in self.blocks:
+                x, anchor_Zt = block(x, **kwargs)
+                kwargs['anchor_Zt'] = anchor_Zt
+        
 
         # head
         x = self.head(x, e)
