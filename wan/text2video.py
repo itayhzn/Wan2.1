@@ -305,6 +305,10 @@ class WanT2V:
             anchor_Zt = None
             start_timestep = 0 if edit_mode else 0
 
+            save_tensors(f'tensors/{encoded_params}', {
+                    'anchor_z0': anchor_z0
+                })
+
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
                 
