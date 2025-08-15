@@ -161,13 +161,13 @@ class WanSelfAttention(nn.Module):
             # v = v_a * subject_mask # + v * (1 - subject_mask)
 
             x_a = flash_attention(
-                q=rope_apply(q, grid_sizes, freqs),
-                k=rope_apply(k, grid_sizes, freqs),
+                q=rope_apply(q_a, grid_sizes, freqs),
+                k=rope_apply(k_a, grid_sizes, freqs),
                 v=rope_apply(v_a, grid_sizes, freqs),
                 k_lens=seq_lens,
                 window_size=self.window_size)
             
-            x = x_a # * subject_mask + x * (1 - subject_mask)
+            x = x_a * subject_mask + x * (1 - subject_mask)
         
         # output
         x = x.flatten(2)
