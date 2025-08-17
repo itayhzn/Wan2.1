@@ -177,7 +177,8 @@ class WanSelfAttention(nn.Module):
         # output
         x = x.flatten(2)
         x = self.o(x)
-        return x, x_a if edit_mode else x
+        
+        return (x, x_a) if edit_mode else x
 
 
 class WanT2VCrossAttention(WanSelfAttention):
@@ -221,7 +222,7 @@ class WanT2VCrossAttention(WanSelfAttention):
         # output
         x = x.flatten(2)
         x = self.o(x)
-        return x, x_a if edit_mode else x
+        return (x, x_a) if edit_mode else x
 
 
 class WanI2VCrossAttention(WanSelfAttention):
@@ -353,12 +354,6 @@ class WanAttentionBlock(nn.Module):
                 self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
                 freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
 
-        print(f"edit_mode: {edit_mode}")
-        print(f"x.type: {x.dtype}, x.shape: {x.shape}")
-        print(f"y.type: {y.dtype}, y.shape: {y.shape}")
-        print(f"len(e): {len(e)}, e[i].type: {[e[i].dtype for i in range(len(e))]}, e[i].shape: {[e[i].shape for i in range(len(e))]}")
-        print(f"anchor_Zt.type: {anchor_Zt.dtype if anchor_Zt is not None else 'None'}, anchor_Zt.shape: {anchor_Zt.shape if anchor_Zt is not None else 'None'}")
-
         with amp.autocast(dtype=torch.float32):
             x = x + y * e[2]
             
@@ -382,8 +377,8 @@ class WanAttentionBlock(nn.Module):
                 x = x + y * e[5]
                 if edit_mode:
                     anchor_Zt = anchor_Zt + y_a * e[5]
-            
-            return x, anchor_Zt if edit_mode else x
+
+            return (x, anchor_Zt) if edit_mode else x
 
         x = cross_attn_ffn(x, context, context_lens, e, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
         return x
