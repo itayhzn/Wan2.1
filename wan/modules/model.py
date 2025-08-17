@@ -188,6 +188,7 @@ class WanT2VCrossAttention(WanSelfAttention):
             context_lens(Tensor): Shape [B]
         """
         b, n, d = x.size(0), self.num_heads, self.head_dim
+        x_a = None
 
         # compute attention
         if edit_mode:
