@@ -350,7 +350,10 @@ class WanAttentionBlock(nn.Module):
         else:
             y, y_a = self.self_attn(
                 self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
-                freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
+                freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, 
+                anchor_Zt=self.norm1(anchor_Zt).float() * (1 + e[1]) + e[0])
+
+        print(f"edit_mode: {edit_mode}, x.type: {x.dtype}, x.shape: {x.shape}, y.type: {y.dtype}, y.shape: {y.shape}, e.type: {e.dtype}, e.shape: {e.shape}, anchor_Zt.type: {anchor_Zt.dtype if anchor_Zt is not None else 'None'}, anchor_Zt.shape: {anchor_Zt.shape if anchor_Zt is not None else 'None'}")
 
         with amp.autocast(dtype=torch.float32):
             x = x + y * e[2]
@@ -363,7 +366,7 @@ class WanAttentionBlock(nn.Module):
             if not edit_mode:
                 w = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
             else:
-                w, w_a = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
+                w, w_a = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=self.norm3(anchor_Zt))
             x = x + w
 
             y = self.ffn(self.norm2(x).float() * (1 + e[4]) + e[3])
