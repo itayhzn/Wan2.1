@@ -305,12 +305,11 @@ class WanT2V:
             anchor_Zt = None
             start_timestep = 0 if edit_mode else 0
 
-            timesteps, sigmas = sample_scheduler.get_timesteps_sigmas()
-            
-            print(f"timesteps: {timesteps}")
-            print(f"sigmas: {sigmas}")
+            _, sigmas = sample_scheduler.get_timesteps_sigmas()
 
-            return None
+            save_tensors(f'tensors/{encoded_params}', {
+                'anchor_Z': anchor_z0,
+            })
 
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
@@ -319,8 +318,13 @@ class WanT2V:
                     if idx < start_timestep:
                         continue
 
-                    anchor_Zt = anchor_z0 +  noise[0]
-            
+                    anchor_Zt = (1-sigmas[idx]) * anchor_z0 +  sigmas[idx] * noise[0]
+
+                    save_tensors(f'tensors/{encoded_params}', {
+                        f'anchor_Z_{idx:02f}': anchor_Zt
+                    })
+                    continue
+
                     if idx == start_timestep:
                         latents = [anchor_Zt]
 
