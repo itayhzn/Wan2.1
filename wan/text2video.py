@@ -314,7 +314,11 @@ class WanT2V:
 
                     anchor_Zt = sample_scheduler.add_noise(
                         anchor_z0, noise[0], torch.tensor(timestep)) # [C, F, H, W]
-            
+
+                    save_tensors(f'tensors/{encoded_params}', {
+                        f'anchor_Z_{idx:02d}': anchor_Zt
+                    })
+
                     if idx == start_timestep:
                         latents = [anchor_Zt]
 
