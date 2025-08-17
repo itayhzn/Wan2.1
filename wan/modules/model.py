@@ -169,7 +169,7 @@ class WanSelfAttention(nn.Module):
                 k_lens=seq_lens,
                 window_size=self.window_size)
 
-            # x = x_a * subject_mask + x * (1 - subject_mask)
+            x = x_a * subject_mask + x * (1 - subject_mask)
 
             x_a = x_a.flatten(2)
             x_a = self.o(x_a)
