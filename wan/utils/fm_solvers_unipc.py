@@ -228,6 +228,12 @@ class FlowUniPCMultistepScheduler(SchedulerMixin, ConfigMixin):
         self.sigmas = self.sigmas.to(
             "cpu")  # to avoid too much CPU/GPU communication
 
+    def get_timesteps_sigmas(self):
+        """
+        Returns the timesteps and sigmas used in the diffusion chain.
+        """
+        return self.timesteps, self.sigmas
+
     # Copied from diffusers.schedulers.scheduling_ddpm.DDPMScheduler._threshold_sample
     def _threshold_sample(self, sample: torch.Tensor) -> torch.Tensor:
         """
