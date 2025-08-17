@@ -156,29 +156,29 @@ class WanSelfAttention(nn.Module):
             k_lens=seq_lens,
             window_size=self.window_size)
         
-        # if edit_mode:
-        #     q_a, k_a, v_a = qkv_fn(anchor_Zt)
-        #     # q = q * subject_mask # + q * (1 - subject_mask)
-        #     # k = k * subject_mask # + k * (1 - subject_mask)
-        #     # v = v_a * subject_mask # + v * (1 - subject_mask)
+        if edit_mode:
+            q_a, k_a, v_a = qkv_fn(anchor_Zt)
+            # q = q * subject_mask # + q * (1 - subject_mask)
+            # k = k * subject_mask # + k * (1 - subject_mask)
+            # v = v_a * subject_mask # + v * (1 - subject_mask)
 
-        #     x_a = flash_attention(
-        #         q=rope_apply(q_a, grid_sizes, freqs),
-        #         k=rope_apply(k_a, grid_sizes, freqs),
-        #         v=rope_apply(v_a, grid_sizes, freqs),
-        #         k_lens=seq_lens,
-        #         window_size=self.window_size)
+            x_a = flash_attention(
+                q=rope_apply(q_a, grid_sizes, freqs),
+                k=rope_apply(k_a, grid_sizes, freqs),
+                v=rope_apply(v_a, grid_sizes, freqs),
+                k_lens=seq_lens,
+                window_size=self.window_size)
 
-        #     # x = x_a * subject_mask + x * (1 - subject_mask)
+            # x = x_a * subject_mask + x * (1 - subject_mask)
 
-        #     x_a = x_a.flatten(2)
-        #     x_a = self.o(x_a)
+            x_a = x_a.flatten(2)
+            x_a = self.o(x_a)
 
         # output
         x = x.flatten(2)
         x = self.o(x)
         
-        return x # (x, x_a) if edit_mode else x
+        return (x, x_a) if edit_mode else x
 
 
 class WanT2VCrossAttention(WanSelfAttention):
@@ -195,25 +195,25 @@ class WanT2VCrossAttention(WanSelfAttention):
 
         # compute attention
         if edit_mode:
-        #     q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
-        #     # q = q_a * subject_mask
+            q_a = self.norm_q(self.q(anchor_Zt)).view(b, -1, n, d)
+            # q = q_a * subject_mask
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
 
             k_edit = self.norm_k(self.k(edit_context)).view(b, -1, n, d)
             v_edit = self.v(edit_context).view(b, -1, n, d)
 
-        #     # q = q * subject_mask
+            # q = q * subject_mask
 
             x = flash_attention(q, k_edit, v_edit, k_lens=None)
 
-        #     x_a = flash_attention(q_a, k_edit, v_edit, k_lens=None)
+            x_a = flash_attention(q_a, k_edit, v_edit, k_lens=None)
 
-        #     # x = x_a * subject_mask + x * (1 - subject_mask)
+            # x = x_a * subject_mask + x * (1 - subject_mask)
 
-        #     x_a = x_a.flatten(2)
-        #     x_a = self.o(x_a)
+            x_a = x_a.flatten(2)
+            x_a = self.o(x_a)
 
-        #     # x = x * subject_mask
+            # x = x * subject_mask
         else:
             # compute query, key, value
             q = self.norm_q(self.q(x)).view(b, -1, n, d)
@@ -225,7 +225,7 @@ class WanT2VCrossAttention(WanSelfAttention):
         # output
         x = x.flatten(2)
         x = self.o(x)
-        return x # (x, x_a) if edit_mode else x
+        return (x, x_a) if edit_mode else x
 
 
 class WanI2VCrossAttention(WanSelfAttention):
@@ -346,14 +346,13 @@ class WanAttentionBlock(nn.Module):
             e = (self.modulation + e).chunk(6, dim=1)
         assert e[0].dtype == torch.float32
         
-        # if edit_mode:
-        #     # self-attention
-        #     y, y_a = self.self_attn(
-        #         self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
-        #         freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, 
-        #         anchor_Zt=self.norm1(anchor_Zt).float() * (1 + e[1]) + e[0])
-        # else:
-        if True:
+        if edit_mode:
+            # self-attention
+            y, y_a = self.self_attn(
+                self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
+                freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, 
+                anchor_Zt=self.norm1(anchor_Zt).float() * (1 + e[1]) + e[0])
+        else:
             y = self.self_attn(
                 self.norm1(x).float() * (1 + e[1]) + e[0], seq_lens, grid_sizes,
                 freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
@@ -361,29 +360,28 @@ class WanAttentionBlock(nn.Module):
         with amp.autocast(dtype=torch.float32):
             x = x + y * e[2]
             
-            # if edit_mode:
-            #     anchor_Zt = anchor_Zt + y_a * e[2]
+            if edit_mode:
+                anchor_Zt = anchor_Zt + y_a * e[2]
 
         # cross-attention & ffn function
         def cross_attn_ffn(x, context, context_lens, e, edit_mode=None, edit_context=None, subject_mask=None, anchor_Zt=None):
-            # if edit_mode:
-            #     w, w_a = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=self.norm3(anchor_Zt))
-            # else:
-            if True:
+            if edit_mode:
+                w, w_a = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=self.norm3(anchor_Zt))
+            else:
                 w = self.cross_attn(self.norm3(x), context, context_lens, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
             x = x + w
 
             y = self.ffn(self.norm2(x).float() * (1 + e[4]) + e[3])
-            # if edit_mode:
-            #     anchor_Zt = anchor_Zt + w_a 
-            #     y_a = self.ffn(self.norm2(anchor_Zt).float() * (1 + e[4]) + e[3])
+            if edit_mode:
+                anchor_Zt = anchor_Zt + w_a 
+                y_a = self.ffn(self.norm2(anchor_Zt).float() * (1 + e[4]) + e[3])
 
             with amp.autocast(dtype=torch.float32):
                 x = x + y * e[5]
-                # if edit_mode:
-                #     anchor_Zt = anchor_Zt + y_a * e[5]
+                if edit_mode:
+                    anchor_Zt = anchor_Zt + y_a * e[5]
 
-            return x # (x, anchor_Zt) if edit_mode else x
+            return (x, anchor_Zt) if edit_mode else x
 
         x = cross_attn_ffn(x, context, context_lens, e, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, anchor_Zt=anchor_Zt)
         return x
@@ -685,8 +683,7 @@ class WanModel(ModelMixin, ConfigMixin):
                 x = block(x, **kwargs)
         else:
             for block in self.blocks:
-                x = block(x, **kwargs)
-                # , anchor_Zt
+                x, anchor_Zt = block(x, **kwargs)
                 kwargs['anchor_Zt'] = anchor_Zt
         
 

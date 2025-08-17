@@ -305,18 +305,18 @@ class WanT2V:
             anchor_Zt = None
             start_timestep = 0 if edit_mode else 0
 
+            noise = sample_scheduler.add_noise(
+                        anchor_z0, noise[0], torch.tensor(timesteps[10]))
+
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
                 
                 if edit_mode:
-                    if idx < start_timestep:
-                        continue
+                    # if idx < start_timestep:
+                    #     continue
 
                     anchor_Zt = sample_scheduler.add_noise(
                         anchor_z0, noise[0], torch.tensor(timestep)) # [C, F, H, W]
-
-                    if idx == start_timestep:
-                        latents = [anchor_Zt]
 
                 arg_c['anchor_Zt'] = [anchor_Zt]
                 arg_null['anchor_Zt'] = [anchor_Zt]
