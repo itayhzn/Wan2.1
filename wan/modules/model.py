@@ -208,7 +208,7 @@ class WanT2VCrossAttention(WanSelfAttention):
 
             x_a = flash_attention(q_a, k_edit, v_edit, k_lens=None)
 
-            x = x_a * subject_mask + x * (1 - subject_mask)
+            # x = x_a * subject_mask + x * (1 - subject_mask)
 
             x_a = x_a.flatten(2)
             x_a = self.o(x_a)
