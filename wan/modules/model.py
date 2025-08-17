@@ -353,7 +353,11 @@ class WanAttentionBlock(nn.Module):
                 freqs, edit_mode=edit_mode, edit_context=edit_context, subject_mask=subject_mask, 
                 anchor_Zt=self.norm1(anchor_Zt).float() * (1 + e[1]) + e[0])
 
-        print(f"edit_mode: {edit_mode}, x.type: {x.dtype}, x.shape: {x.shape}, y.type: {y.dtype}, y.shape: {y.shape}, e.type: {e.dtype}, e.shape: {e.shape}, anchor_Zt.type: {anchor_Zt.dtype if anchor_Zt is not None else 'None'}, anchor_Zt.shape: {anchor_Zt.shape if anchor_Zt is not None else 'None'}")
+        print(f"edit_mode: {edit_mode}")
+        print(f"x.type: {x.dtype}, x.shape: {x.shape}")
+        print(f"y.type: {y.dtype}, y.shape: {y.shape}")
+        print(f"len(e): {len(e)}, e[i].type: {[e[i].dtype for i in range(len(e))]}, e[i].shape: {[e[i].shape for i in range(len(e))]}")
+        print(f"anchor_Zt.type: {anchor_Zt.dtype if anchor_Zt is not None else 'None'}, anchor_Zt.shape: {anchor_Zt.shape if anchor_Zt is not None else 'None'}")
 
         with amp.autocast(dtype=torch.float32):
             x = x + y * e[2]
