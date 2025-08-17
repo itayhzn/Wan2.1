@@ -307,7 +307,7 @@ class WanT2V:
 
             noise = [
                 sample_scheduler.add_noise(
-                        anchor_z0, noise[0], torch.tensor(timesteps[10]))
+                        anchor_z0, noise[0], torch.tensor([timesteps[10]]))
             ] if edit_mode else noise
 
             for idx, t in enumerate(tqdm(timesteps)):
