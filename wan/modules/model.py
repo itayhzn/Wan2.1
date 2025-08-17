@@ -685,7 +685,8 @@ class WanModel(ModelMixin, ConfigMixin):
                 x = block(x, **kwargs)
         else:
             for block in self.blocks:
-                x, anchor_Zt = block(x, **kwargs)
+                x = block(x, **kwargs)
+                # , anchor_Zt
                 kwargs['anchor_Zt'] = anchor_Zt
         
 
