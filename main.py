@@ -37,9 +37,9 @@ if __name__ == "__main__":
     base_seed = 11
     experiment_name = "athletic"
 
-    # os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(edit_prompts)}" --seeds {base_seed} --experiment_name "{experiment_name}"  """)
+    os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(edit_prompts)}" --seeds {base_seed} --experiment_name "{experiment_name}"  """)
 
     # os.system("""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "A woman performing an intricate dance on stage, illuminated by a single spotlight in the first frame." --seeds 1024 """)
 
 
-    os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --edit_mode "True" --input_paths "{'" "'.join(input_paths)}" --subject_prompts "{'" "'.join(subject_prompts)}" --edit_prompts "{'" "'.join(edit_prompts)}" --base_seed {base_seed} --experiment_name "{experiment_name}" """)
+    # os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --edit_mode "True" --input_paths "{'" "'.join(input_paths)}" --subject_prompts "{'" "'.join(subject_prompts)}" --edit_prompts "{'" "'.join(edit_prompts)}" --base_seed {base_seed} --experiment_name "{experiment_name}" """)
