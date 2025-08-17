@@ -179,6 +179,8 @@ class WanT2V:
             video = [ torch.tensor(np.array(frame), dtype=torch.float32, device=self.device) for frame in video ]
             video = torch.stack(video, dim=0)  # [F, H, W, C]
 
+            print(f"video shape: [F, H, W, C] = {video.shape}")
+
             # 2. Update output video parameters to match the input video
             frame_num = video.shape[0]
             size = (video.shape[2], video.shape[1])  # (W, H)
@@ -203,6 +205,8 @@ class WanT2V:
         target_shape = (self.vae.model.z_dim, (F - 1) // self.vae_stride[0] + 1,
                         size[1] // self.vae_stride[1],
                         size[0] // self.vae_stride[2])
+        print(f"frame_num: {frame_num}")
+        print(f"target_shape: {target_shape}")
 
         ##################
         if edit_mode:
@@ -227,12 +231,15 @@ class WanT2V:
             # Current video shape is [F, H, W, C], VAE expects [C, F, H, W]
             anchor_z0 = self.vae.encode(video.permute(3, 0, 1, 2).unsqueeze(0))  # [1, C, F, H, W]
             anchor_z0 = anchor_z0[0] # [C, F, H, W]
+            print(f"anchor_z0 shape: {anchor_z0.shape}")
 
         ###################
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
                             (self.patch_size[1] * self.patch_size[2]) *
                             target_shape[1] / self.sp_size) * self.sp_size
+
+        print(f"seq_len: {seq_len}")
 
         if n_prompt == "":
             n_prompt = self.sample_neg_prompt
@@ -265,6 +272,8 @@ class WanT2V:
                 device=self.device,
                 generator=seed_g)
         ]
+
+        print(f"noise shape: {noise[0].shape}")
 
         @contextmanager
         def noop_no_sync():
@@ -345,11 +354,13 @@ class WanT2V:
                 latents = [temp_x0.squeeze(0)]
 
             x0 = latents
+            print(f"x0 shape: {x0[0].shape}")
             if offload_model:
                 self.model.cpu()
                 torch.cuda.empty_cache()
             if self.rank == 0:
                 videos = self.vae.decode(x0)
+                print(f"videos shape: {[video.shape for video in videos]}")
 
         del noise, latents
         del sample_scheduler
