@@ -303,7 +303,7 @@ class WanT2V:
             arg_null = {'context': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_mask': subject_mask, 'edit_mode': edit_mode}
 
             anchor_Zt = None
-            start_timestep = 49 if edit_mode else 0
+            start_timestep = 0 if edit_mode else 0
 
             for idx, t in enumerate(tqdm(timesteps)):
                 timestep = [t]
@@ -341,6 +341,10 @@ class WanT2V:
                     return_dict=False,
                     generator=seed_g)[0]
                 latents = [temp_x0.squeeze(0)]
+
+                save_tensors(f'tensors/{encoded_params}', {
+                    f'Z_{idx:02d}': latents[0]
+                })
 
             x0 = latents
             if offload_model:
