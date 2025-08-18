@@ -133,6 +133,7 @@ class WanT2V:
                  offload_model=True,
                  edit_mode=False,
                  input_path=None,
+                 input_video_fps=30,
                  subject_prompt=None,
                  edit_prompt=None,
                  encoded_params=None
@@ -191,12 +192,12 @@ class WanT2V:
             )
 
             # delete the video folder to save space
-            if os.path.exists(vid_folder):
-                for frame in frames_list:
-                    frame_path = os.path.join(vid_folder, frame + ext)
-                    if os.path.exists(frame_path):
-                        os.remove(frame_path)
-                os.rmdir(vid_folder)
+            # if os.path.exists(vid_folder):
+            #     for frame in frames_list:
+            #         frame_path = os.path.join(vid_folder, frame + ext)
+            #         if os.path.exists(frame_path):
+            #             os.remove(frame_path)
+            #     os.rmdir(vid_folder)
 
         ##################
 

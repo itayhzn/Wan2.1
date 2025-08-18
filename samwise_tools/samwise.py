@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader
 from os.path import join
 from datasets.transform_utils import vis_add_mask
 from types import SimpleNamespace
+import cv2
 
 # colormap
 color_list = colormap()
@@ -51,22 +52,34 @@ def build_samwise_model(args=None):
     return model
 
 
-def extract_frames_from_mp4(video_path):
+def extract_frames_from_mp4(video_path, ext='.png'):
     extract_folder = 'frames_' + os.path.basename(video_path).split('.')[0]
-    print(f'Extracting frames from .mp4 in {extract_folder} with ffmpeg...')
+    print(f'Extracting frames from .mp4 in {extract_folder}...')
     if os.path.isdir(extract_folder):
         print(f'{extract_folder} already exists, using frames in that folder')
+        frames_list = sorted(os.listdir(extract_folder))
+        frames_list = [os.path.splitext(frame)[0] for frame in frames_list if os.path.splitext(frame)[1].lower() == ext]
     else:
+        video = []
+        cap = cv2.VideoCapture(video_path)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+            # frame dim [H, W, C]
+            video.append(frame)
+        cap.release()
+    
         os.makedirs(extract_folder)
-        extract_cmd = "ffmpeg -i {in_path} -loglevel error -vf fps=10 {folder}/frame_%05d.png"
-        ret = os.system(extract_cmd.format(in_path=video_path, folder=extract_folder))
-        if ret != 0:
-            print('Something went wrong extracting frames with ffmpeg')
-            sys.exit(ret)
-    frames_list=os.listdir(extract_folder)
-    frames_list = sorted([os.path.splitext(frame)[0] for frame in frames_list])
+        frames_list = []
+        for i, frame in enumerate(video):
+            frame = Image.fromarray(frame)
+            frame_name = f"{i:04d}"
+            frame.save(os.path.join(extract_folder, frame_name + ext))
+            frames_list.append(frame_name)
 
-    return extract_folder, frames_list, '.png'
+    return extract_folder, frames_list, ext
 
 
 def compute_masks(model, text_prompt, frames_folder, frames_list, ext, args):
