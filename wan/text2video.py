@@ -305,7 +305,7 @@ class WanT2V:
             arg_null = {'context': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_mask': subject_mask, 'edit_mode': edit_mode}
 
             anchor_Zt = None
-            start_timestep = 49 if edit_mode else 0
+            start_timestep = 45 if edit_mode else 0
 
             noise = [
                 sample_scheduler.add_noise(
@@ -316,8 +316,8 @@ class WanT2V:
                 timestep = [t]
                 
                 if edit_mode:
-                    if idx < start_timestep:
-                        continue
+                    # if idx < start_timestep:
+                    #     continue
 
                     anchor_Zt = sample_scheduler.add_noise(
                         anchor_z0, noise[0], torch.tensor(timestep)) # [C, F, H, W]
