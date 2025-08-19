@@ -8,6 +8,7 @@ import sys
 import types
 from contextlib import contextmanager
 from functools import partial
+import uuid
 
 import torch
 import torch.cuda.amp as amp
@@ -176,7 +177,7 @@ class PairedWanT2V:
             # Convert from [C, F, H, W] to [F, H, W, C]
             video = original_video.permute(1, 2, 3, 0).contiguous()
 
-        original_video_dir = f'tensors/{encoded_params}/original_video'
+        original_video_dir = f'original_video_{uuid.uuid4().hex}'
         ext = '.png'
         frames_list = save_video_tensor_in_dir(video, output_dir=original_video_dir, ext=ext)
 
