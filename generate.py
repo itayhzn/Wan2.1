@@ -380,6 +380,8 @@ def generate(args):
     logging.info(f"Generation job args: {args}")
     logging.info(f"Generation model config: {cfg}")
 
+    print(f"args: {args} \n cfg: {cfg}")
+
     if dist.is_initialized():
         base_seed = [args.base_seed] if rank == 0 else [None]
         dist.broadcast_object_list(base_seed, src=0)

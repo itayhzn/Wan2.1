@@ -19,26 +19,15 @@ def read_file(file_path):
 
 
 if __name__ == "__main__":
-    experiment_name = "mask-debug"
+    experiment_name = "mask"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # prompts = [
-    #     "A fish swims forward in a steady line, its tail swaying side to side as it propels itself.",
-    #     "A red octopus moving its tentacles around.",
-    #     "A jellyfish swimming in shallow water. The jellyfish has a translucent body with a distinctive pattern of white circles and lines. It appears to be swimming just below the surface of the water, which is dark and murky due to the presence of algae or other aquatic plants.",
-    #     "A dog playing with an orange ball with blue stripes. The dog picks up the ball and holds it in its mouth, conveying a sense of playfulness and energy. Throughout the video, the dog is seen playing with the ball, capturing the joy and excitement of the moment.",
-    #     "Athletic man doing gymnastics elements on horizontal bar in city park. Male sportsmen perform strength exercises outdoors.",
-    #     "A small dog playing with a red ball on a hardwood floor.",
-    #     "A white kitten playing with a ball."
-    # ]
-    prompts =  read_file("videojam_prompts.txt")[5] 
-    # [ "A small dog playing with a red ball on a hardwood floor." ]
+    prompts =  [ read_file("videojam_prompts.txt")[5] ]
 
-    seeds = [ '1024' ]
+    seeds = [ '11' ]
 
-    subject_prompts = read_file("videojam_subjects.txt")[5]
-        # [ 'dog' ]
+    subject_prompts = [ read_file("videojam_subjects.txt")[5] ]
 
     edit_prompts =  ["A cat."] * len(prompts) 
 
