@@ -32,12 +32,12 @@ if __name__ == "__main__":
     #     "A small dog playing with a red ball on a hardwood floor.",
     #     "A white kitten playing with a ball."
     # ]
-    prompts =  read_file("videojam_prompts.txt")[:10] 
+    prompts =  read_file("videojam_prompts.txt")[5] 
     # [ "A small dog playing with a red ball on a hardwood floor." ]
 
     seeds = [ '1024' ]
 
-    subject_prompts = read_file("videojam_subjects.txt")[:10]
+    subject_prompts = read_file("videojam_subjects.txt")[5]
         # [ 'dog' ]
 
     edit_prompts =  ["A cat."] * len(prompts) 

@@ -21,6 +21,8 @@ from wan.utils.utils import cache_image, cache_video, str2bool
 
 from utils import encode_params
 
+import uuid
+
 EXAMPLE_PROMPT = {
     "t2v-1.3B": {
         "prompt":
@@ -425,6 +427,8 @@ def generate(args):
         logging.info(
             f"Generating {'image' if 't2i' in args.task else 'video'} ...")
         
+        save_latents_dir = uuid.uuid4().hex 
+
         video = wan_t2v.generate(
             args.prompt,
             size=SIZE_CONFIGS[args.size],
@@ -435,6 +439,7 @@ def generate(args):
             guide_scale=args.sample_guide_scale,
             seed=args.base_seed,
             offload_model=args.offload_model)
+        
         paired_video = None
         original_video = None
         if args.paired_generation:
@@ -468,7 +473,8 @@ def generate(args):
                 edit_prompt=args.edit_prompt,
                 subject_prompt=args.subject_prompt,
                 encoded_params=encoded_params,
-                original_video=original_video)
+                original_video=original_video
+                )
 
     elif "i2v" in args.task:
         if args.prompt is None:

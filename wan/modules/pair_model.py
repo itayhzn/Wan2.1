@@ -15,7 +15,6 @@ from datetime import datetime
 import os
 
 from utils import save_tensors
-from latent_segmentor import LatentSegmentor
 
 __all__ = ['WanModel']
 
@@ -39,8 +38,7 @@ class PairedWanSelfAttention(nn.Module):
         self.window_size = window_size
         self.qk_norm = qk_norm
         self.eps = eps
-        self.latent_segmentor = None
-
+        
         # layers
         self.q = nn.Linear(dim, dim)
         self.k = nn.Linear(dim, dim)
@@ -48,17 +46,6 @@ class PairedWanSelfAttention(nn.Module):
         self.o = nn.Linear(dim, dim)
         self.norm_q = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
         self.norm_k = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
-
-    def set_latent_segmentor(self, segmentor: LatentSegmentor):
-        r"""
-        Set the latent segmentor for the self-attention module.
-
-        Args:
-            segmentor (LatentSegmentor):
-                An instance of LatentSegmentor to be used for subject mask computation.
-        """
-        assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
-        self.latent_segmentor = segmentor
 
     def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs, original_x1=None, original_x2=None, should_edit=False, subject_masks=None):
         r"""
@@ -79,7 +66,7 @@ class PairedWanSelfAttention(nn.Module):
             k_lens=seq_lens,
             window_size=self.window_size) # [B, F*H*W, n, d]
 
-        if should_edit:
+        if False: #should_edit:
             subject_masks = subject_masks.view(1, -1, 1, 1)
             q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
             q_edit, k_edit, v_edit = self.qkv_fn(edit_context) # [B, L2, n, d]
@@ -136,7 +123,7 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
         # compute attention
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
 
-        x2 = flash_attention(q2, k_edit, v_edit) # , k_lens=context_lens
+        x2 = flash_attention(q2, k_context1, v_context1) # , k_lens=context_lens
 
         # output
         x1 = x1.flatten(2)
@@ -379,23 +366,6 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         # initialize weights
         self.init_weights()
 
-        self.latent_segmentor = None
-    
-    def set_latent_segmentor(self, segmentor: LatentSegmentor):
-        r"""
-        Set the latent segmentor for the model.
-
-        Args:
-            segmentor (LatentSegmentor):
-                An instance of LatentSegmentor to be used for subject masks computation.
-        """
-        assert isinstance(segmentor, LatentSegmentor), "segmentor must be an instance of LatentSegmentor"
-        self.latent_segmentor = segmentor
-        for block in self.blocks:
-            if hasattr(block.self_attn, 'set_latent_segmentor'):
-                block.self_attn.set_latent_segmentor(segmentor)
-            if hasattr(block.cross_attn, 'set_latent_segmentor'):
-                block.cross_attn.set_latent_segmentor(segmentor)
 
     def forward(
         self,

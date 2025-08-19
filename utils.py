@@ -61,7 +61,7 @@ def read_video(video_path):
     cap.release()
     return video
 
-def save_video_tensor_in_dir(video, output_dir):
+def save_video_tensor_in_dir(video, output_dir, ext='.png'):
     """
         video: [F, H, W, C]
     """
@@ -75,9 +75,15 @@ def save_video_tensor_in_dir(video, output_dir):
     video = (video - video.min()) / (video.max() - video.min()) * 255.0
     video = video.astype(np.uint8)  # Convert to uint8 for saving as images
 
+    frames_list = []
+
     for i, frame in enumerate(video):
         frame = Image.fromarray(frame)
-        frame.save(os.path.join(output_dir, f"{i:04d}.jpg"))
+        frame_name = f"{i:04d}"  # Unique name for each frame
+        frame.save(os.path.join(output_dir, frame_name + ext))
+        frames_list.append(frame_name)
+    
+    return frames_list
 
 def delete_video_dir(video_dir):
     if os.path.exists(video_dir):

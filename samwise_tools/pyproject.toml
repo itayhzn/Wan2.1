@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "samwise"
+version = "0.0.1"
+description = "SAMWISE vendored inside Wan2.1"
+requires-python = ">=3.9"
+
+[tool.setuptools]
+# Auto-discover all packages at the repo root
+packages = ["util", "models", "tools", "fairseq", "datasets", "davis2017"]
+py-modules = ["samwise"]
+include-package-data = true

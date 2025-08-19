@@ -25,8 +25,11 @@ from .utils.fm_solvers import (
 )
 from .utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 
-from utils import save_tensors
-from latent_segmentor import LatentSegmentor
+from utils import save_tensors, save_video_tensor_in_dir, delete_video_dir
+from PIL import Image
+import samwise
+
+import torch.nn.functional as TF
 
 class PairedWanT2V:
 
@@ -85,16 +88,11 @@ class PairedWanT2V:
             vae_pth=os.path.join(checkpoint_dir, config.vae_checkpoint),
             device=self.device)
 
-        self.latent_segmentor = LatentSegmentor(
-            vae=self.vae,
-            sam2=None, 
-            device=self.device)
-
         logging.info(f"Creating WanModel from {checkpoint_dir}")
         self.model = PairedWanModel.from_pretrained(checkpoint_dir)
         self.model.eval().requires_grad_(False)
         
-        self.model.set_latent_segmentor(self.latent_segmentor)
+        self.samwise_model = samwise.build_samwise_model()
 
         if use_usp:
             from xfuser.core.distributed import get_sequence_parallel_world_size
@@ -171,11 +169,44 @@ class PairedWanT2V:
                 - W: Frame width from size)
             The second video will contain the objects specified in `edit_prompt`.
         """
+        if original_video is None:
+            raise ValueError("original_video must be provided for paired generation.")
+        
+        if original_video.shape[0] == 3:
+            # Convert from [C, F, H, W] to [F, H, W, C]
+            video = original_video.permute(1, 2, 3, 0).contiguous()
+
+        original_video_dir = f'tensors/{encoded_params}/original_video'
+        ext = '.png'
+        frames_list = save_video_tensor_in_dir(video, output_dir=original_video_dir, ext=ext)
+
+        # 2. Update output video parameters to match the input video
+        frame_num = video.shape[0]
+        size = (video.shape[2], video.shape[1])  # (W, H)
+
+        # 3. Compute the mask for the subject
+        mask = samwise.compute_masks(
+            self.samwise_model, subject_prompt, original_video_dir, frames_list, ext, samwise.get_samwise_args()
+        )
+        
+        original_mask = torch.tensor(mask, dtype=torch.float32, device=self.device)
+        subject_mask = original_mask
+        
+        # delete the video folder to save space
+        delete_video_dir(original_video_dir)
+
         # preprocess
         F = frame_num
         target_shape = (self.vae.model.z_dim, (F - 1) // self.vae_stride[0] + 1,
                         size[1] // self.vae_stride[1],
                         size[0] // self.vae_stride[2])
+
+        subject_mask = TF.interpolate(
+            original_mask.unsqueeze(0).unsqueeze(0).float(),
+            size=(target_shape[1], target_shape[2], target_shape[3]),
+            mode='trilinear',
+            align_corners=False
+        ).squeeze(0).squeeze(0)
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
                             (self.patch_size[1] * self.patch_size[2]) *
@@ -264,10 +295,10 @@ class PairedWanT2V:
             latents1 = noise1
             latents2 = noise2
 
-            masks = self.compute_subject_mask_given_original_video(original_video, subject_context, save_tensors_dir=f'tensors/{encoded_params}')
+            print(f'original_mask.shape: {original_mask.shape}, subject_mask.shape: {subject_mask.shape}, latents1.shape: {latents1[0].shape}, latents2.shape: {latents2[0].shape}')
 
-            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': masks}
-            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': masks}
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': subject_mask}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': subject_mask}
 
             edit_timesteps = timesteps[7:]
 
@@ -337,38 +368,4 @@ class PairedWanT2V:
 
         return videos1[0] if self.rank == 0 else None, videos2[0] if self.rank == 0 else None
 
-    def compute_subject_mask_given_original_video(self, x, subject_context, save_tensors_dir=None):
-        latent = self.vae.encode([x])
-        x, grid_sizes = self.model.prepare_for_qkv(latent)
-        q, _, _ = self.model.qkv_fn(x)
-        
-        subject_context = self.model.text_embedding(
-                torch.stack([
-                    torch.cat(
-                        [u, u.new_zeros(self.model.text_len - u.size(0), u.size(1))])
-                    for u in subject_context
-                ]))
-
-        _, k_subject, _ = self.model.qkv_fn(subject_context)
-        
-        self.latent_segmentor.reset_inference_state()
-        masks = self.latent_segmentor.compute_subject_mask(latent[0], q, k_subject, grid_sizes, save_tensors_dir=save_tensors_dir)
-        masks = masks.view(1, -1)  # [1, F*H*W]
-
-        print(f"masks shape: {masks.shape}, grid_sizes: {grid_sizes}, latent shape: {latent[0].shape}")
-        print("save_tensors_dir: ", save_tensors_dir)
-
-        if save_tensors_dir is not None:
-            save_tensors(
-                save_tensors_dir=save_tensors_dir,
-                tensors_dict={
-                    'latent': latent,
-                    'x': x,
-                    'q': q,
-                    'k_subject': k_subject,
-                    'grid_sizes': grid_sizes, 
-                    'subject_masks': masks
-                })
-
-        return masks
-
+    
