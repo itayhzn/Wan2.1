@@ -186,11 +186,10 @@ class WanT2V:
             size = (video.shape[2], video.shape[1])  # (W, H)
 
             # 3. Compute the mask for the subject
-            # mask = samwise.compute_masks(
-                # self.samwise_model, subject_prompt, vid_folder, frames_list, ext, samwise.get_samwise_args()
-            # )
-            mask = torch.ones(frame_num, size[1], size[0], dtype=torch.float32, device=self.device)  # Dummy mask for example
-
+            mask = samwise.compute_masks(
+                self.samwise_model, subject_prompt, vid_folder, frames_list, ext, samwise.get_samwise_args()
+            )
+            
             # delete the video folder to save space
             if os.path.exists(vid_folder):
                 for frame in frames_list:
@@ -230,7 +229,7 @@ class WanT2V:
             # Current video shape is [F, H, W, C], VAE expects [1, C, F, H, W]
             video = video.permute(3, 0, 1, 2).unsqueeze(0)  # [1, C, F, H, W]
             # normalize video to [-1, 1]
-            video = (video / 255.0 - 0.5) * 2.0
+            video = video / 255.0 * 2.0 - 1.0
             # encode the video
             anchor_z0 = self.vae.encode(video)  # [1, C, F, H, W]
             anchor_z0 = anchor_z0[0] # [C, F, H, W]
