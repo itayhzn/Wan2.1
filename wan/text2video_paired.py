@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from functools import partial
 import uuid
 
+import numpy as np
 import torch
 import torch.cuda.amp as amp
 import torch.distributed as dist
@@ -93,8 +94,6 @@ class PairedWanT2V:
         self.model = PairedWanModel.from_pretrained(checkpoint_dir)
         self.model.eval().requires_grad_(False)
         
-        self.samwise_model = samwise.build_samwise_model()
-
         if use_usp:
             from xfuser.core.distributed import get_sequence_parallel_world_size
 
@@ -119,6 +118,9 @@ class PairedWanT2V:
 
         self.sample_neg_prompt = config.sample_neg_prompt
 
+        self.samwise_model = samwise.build_samwise_model()
+        self.samwise_model.eval().requires_grad_(False)
+
     def generate(self,
                  input_prompt,
                  size=(1280, 720),
@@ -133,7 +135,7 @@ class PairedWanT2V:
                  edit_prompt="",
                  subject_prompt="",
                  encoded_params=None,
-                 original_video=None):
+                 original_video_path=None):
         r"""
         Generates video frames from text prompt using diffusion process.
 
@@ -170,16 +172,13 @@ class PairedWanT2V:
                 - W: Frame width from size)
             The second video will contain the objects specified in `edit_prompt`.
         """
-        if original_video is None:
-            raise ValueError("original_video must be provided for paired generation.")
-        
-        if original_video.shape[0] == 3:
-            # Convert from [C, F, H, W] to [F, H, W, C]
-            video = original_video.permute(1, 2, 3, 0).contiguous()
+        if original_video_path is None:
+            raise ValueError("original_video_path must be provided for paired generation.")
 
-        original_video_dir = f'original_video_{uuid.uuid4().hex}'
-        ext = '.png'
-        frames_list = save_video_tensor_in_dir(video, output_dir=original_video_dir, ext=ext)
+        original_video_dir, frames_list, ext = samwise.extract_frames_from_mp4(original_video_path)
+        video = [ Image.open(os.path.join(original_video_dir, frame + ext)).convert('RGB') for frame in frames_list ]
+        video = [ torch.tensor(np.array(frame), dtype=torch.float32, device=self.device) for frame in video ]
+        video = torch.stack(video, dim=0)
 
         # 2. Update output video parameters to match the input video
         frame_num = video.shape[0]
