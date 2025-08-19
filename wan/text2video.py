@@ -227,8 +227,12 @@ class WanT2V:
             # })
 
             # 6. encode the video. 
-            # Current video shape is [F, H, W, C], VAE expects [C, F, H, W]
-            anchor_z0 = self.vae.encode(video.permute(3, 0, 1, 2).unsqueeze(0))  # [1, C, F, H, W]
+            # Current video shape is [F, H, W, C], VAE expects [1, C, F, H, W]
+            video = video.permute(3, 0, 1, 2).unsqueeze(0)  # [1, C, F, H, W]
+            # normalize video to [-1, 1]
+            video = (video / 255.0 - 0.5) * 2.0
+            # encode the video
+            anchor_z0 = self.vae.encode(video)  # [1, C, F, H, W]
             anchor_z0 = anchor_z0[0] # [C, F, H, W]
         ###################
 
@@ -305,20 +309,18 @@ class WanT2V:
             arg_null = {'context': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_mask': subject_mask, 'edit_mode': edit_mode}
 
             anchor_Zt = None
-            start_timestep = 45 if edit_mode else 0
+            start_timestep = 49 if edit_mode else 0
 
             noise = [
                 sample_scheduler.add_noise(
                         anchor_z0, noise[0], torch.tensor([timesteps[start_timestep]]))
             ] if edit_mode else noise
 
-            for idx, t in enumerate(tqdm(timesteps)):
+            for idx, t in enumerate(tqdm(timesteps[start_timestep:])):
                 timestep = [t]
                 
                 if edit_mode:
-                    # if idx < start_timestep:
-                    #     continue
-
+                    
                     anchor_Zt = sample_scheduler.add_noise(
                         anchor_z0, noise[0], torch.tensor(timestep)) # [C, F, H, W]
 
