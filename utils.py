@@ -11,7 +11,7 @@ import uuid
 def encode_params(prompt, task, size, ulysses_size, ring_size, edit_prompt=None, subject_prompt=None, experiment_name=None):
     def escape(s):
         return s.replace(" ", "_").replace("/", "_").replace(",", "_") \
-                 .replace("'", "_").replace('"', "_")[:30]
+                 .replace("'", "_").replace('"', "_").replace(".", "_")[:30]
     
     formatted_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     

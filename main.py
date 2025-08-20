@@ -19,7 +19,7 @@ def read_file(file_path):
 
 
 if __name__ == "__main__":
-    experiment_name = "mask"
+    experiment_name = "crossedit"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 

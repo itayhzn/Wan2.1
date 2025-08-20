@@ -66,18 +66,18 @@ class PairedWanSelfAttention(nn.Module):
             k_lens=seq_lens,
             window_size=self.window_size) # [B, F*H*W, n, d]
 
-        if False: #should_edit:
-            subject_masks = subject_masks.view(1, -1, 1, 1)
-            q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
-            q_edit, k_edit, v_edit = self.qkv_fn(edit_context) # [B, L2, n, d]
+        if should_edit:
+            # subject_masks = subject_masks.view(1, -1, 1, 1)
+            # q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
+            # q_edit, k_edit, v_edit = self.qkv_fn(edit_context) # [B, L2, n, d]
 
-            x2 = flash_attention(
-                q=rope_apply(q1 * (1 - subject_masks) + q2 * subject_masks, grid_sizes, freqs),
-                k=rope_apply(k1 * (1 - subject_masks) + k2 * subject_masks, grid_sizes, freqs),
-                v=v1,
-                k_lens=seq_lens,
-                window_size=self.window_size) # [B, F*H*W, n, d]
-
+            # x2 = flash_attention(
+            #     q=rope_apply(q1 * (1 - subject_masks) + q2 * subject_masks, grid_sizes, freqs),
+            #     k=rope_apply(k1 * (1 - subject_masks) + k2 * subject_masks, grid_sizes, freqs),
+            #     v=v1,
+            #     k_lens=seq_lens,
+            #     window_size=self.window_size) # [B, F*H*W, n, d]
+            x2 = x1
         else:
             x2 = x1
 
@@ -123,7 +123,13 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
         # compute attention
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
 
-        x2 = flash_attention(q2, k_context1, v_context1) # , k_lens=context_lens
+        x2_context = flash_attention(q2, k_context1, v_context1) # , k_lens=context_lens
+
+        if should_edit:
+            x2_edit = flash_attention(q2, k_edit, v_edit) # , k_lens=context_lens
+            x2 = x2_context * (1 - subject_masks) + x2_edit * subject_masks
+        else:
+            x2 = x2_context
 
         # output
         x1 = x1.flatten(2)
