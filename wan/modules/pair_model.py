@@ -427,13 +427,25 @@ class PairedWanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x1 = [self.patch_embedding(u.unsqueeze(0)) for u in x1]
-        x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]      
+        x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]
+        subject_masks = [self.patch_embedding(u.unsqueeze(0)) for u in subject_masks]
+
+        if save_tensors_dir is not None:
+            save_tensors(save_tensors_dir, {
+                'subject_masks_after_patch_embedding': subject_masks
+            })
 
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x1])
         
         x1 = [u.flatten(2).transpose(1, 2) for u in x1]
         x2 = [u.flatten(2).transpose(1, 2) for u in x2]
+        subject_masks = [u.flatten(2).transpose(1, 2) for u in subject_masks]
+
+        if save_tensors_dir is not None:
+            save_tensors(save_tensors_dir, {
+                'subject_masks_after_flattening': subject_masks
+            })
 
         seq_lens = torch.tensor([u.size(1) for u in x1], dtype=torch.long)
     
@@ -447,6 +459,15 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                       dim=1) for u in x2
         ])
+        subject_masks = torch.cat([
+            torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
+                      dim=1) for u in subject_masks
+        ])
+
+        if save_tensors_dir is not None:
+            save_tensors(save_tensors_dir, {
+                'subject_masks_after_cat': subject_masks
+            })
 
         # time embeddings
         with amp.autocast(dtype=torch.float32):

@@ -189,8 +189,8 @@ class PairedWanT2V:
             self.samwise_model, subject_prompt, original_video_dir, frames_list, ext, samwise.get_samwise_args()
         )
         
-        original_mask = torch.tensor(mask, dtype=torch.float32, device=self.device)
-        subject_mask = original_mask
+        original_mask = torch.tensor(mask, dtype=torch.float32, device=self.device) 
+        subject_masks = [ original_mask ]
         
         # delete the video folder to save space
         delete_video_dir(original_video_dir)
@@ -201,14 +201,15 @@ class PairedWanT2V:
                         size[1] // self.vae_stride[1],
                         size[0] // self.vae_stride[2])
 
-        subject_mask = TF.interpolate(
-            original_mask.unsqueeze(0).unsqueeze(0).float(),
+        subject_masks = [ 
+            TF.interpolate(
+            mask.unsqueeze(0).unsqueeze(0).float(),
             size=(target_shape[1], target_shape[2], target_shape[3]),
             mode='trilinear',
             align_corners=False
-        ).squeeze(0).squeeze(0)
+            ).squeeze(0) 
+        for mask in subject_masks] # [1, 1, F, H, W] -> [F, H, W]
 
-        subject_mask = subject_mask.view(1, -1, 1, 1) # (1, F*H*W, 1, 1)
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
                             (self.patch_size[1] * self.patch_size[2]) *
@@ -241,10 +242,10 @@ class PairedWanT2V:
 
         noise1 = [
             torch.randn(
-                target_shape[0],
-                target_shape[1],
-                target_shape[2],
-                target_shape[3],
+                target_shape[0], # C
+                target_shape[1], # F
+                target_shape[2], # H
+                target_shape[3], # W
                 dtype=torch.float32,
                 device=self.device,
                 generator=seed_g)
@@ -297,8 +298,8 @@ class PairedWanT2V:
             latents1 = noise1
             latents2 = noise2
             
-            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': subject_mask}
-            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': subject_mask}
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': subject_masks}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': subject_masks}
 
             edit_timesteps = timesteps[7:]
 
@@ -313,8 +314,10 @@ class PairedWanT2V:
                 timestep = torch.stack(timestep)
 
                 self.model.to(self.device)
-
-                arg_c['save_tensors_dir'] = None # f'tensors/{encoded_params}/timestep_{idx}' if encoded_params else None
+                if idx == 0:
+                    arg_c['save_tensors_dir'] = f'tensors/{encoded_params}/timestep_{idx}' 
+                else:
+                    arg_c['save_tensors_dir'] = None
                 
                 noise_pred_cond1, noise_pred_cond2 = self.model(
                     latents1, latents2, t=timestep, **arg_c)
