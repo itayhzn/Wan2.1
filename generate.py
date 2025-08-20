@@ -324,6 +324,11 @@ def generate(args):
         args.prompt, args.task, args.size, args.ulysses_size, args.ring_size,
         edit_prompt=args.edit_prompt, subject_prompt=args.subject_prompt, 
         experiment_name=args.experiment_name)
+    
+    suffix = '.png' if "t2i" in args.task else '.mp4'
+    dir_name = 'generated'
+    
+    args.save_file = f"{dir_name}/{encoded_params}{suffix}"
 
     if args.offload_model is None:
         args.offload_model = False if world_size > 1 else True
