@@ -208,6 +208,8 @@ class PairedWanT2V:
             align_corners=False
         ).squeeze(0).squeeze(0)
 
+        subject_mask = subject_mask.view(1, -1, 1, 1) # (1, F*H*W, 1, 1)
+
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
                             (self.patch_size[1] * self.patch_size[2]) *
                             target_shape[1] / self.sp_size) * self.sp_size
@@ -294,9 +296,7 @@ class PairedWanT2V:
             # sample videos
             latents1 = noise1
             latents2 = noise2
-
-            print(f'original_mask.shape: {original_mask.shape}, subject_mask.shape: {subject_mask.shape}, latents1.shape: {latents1[0].shape}, latents2.shape: {latents2[0].shape}')
-
+            
             arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': subject_mask}
             arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': subject_mask}
 

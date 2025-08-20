@@ -508,6 +508,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             subject_masks=subject_masks
             )
 
+        print(f"x1: {x1.shape}, x2: {x2.shape}, subject_masks: {subject_masks.shape if subject_masks is not None else None}") # DEBUG
+
         for i, block in enumerate(self.blocks):
             if i == len(self.blocks) - 1:
                 kwargs['save_tensors_dir'] = save_tensors_dir
