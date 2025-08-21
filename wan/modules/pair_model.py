@@ -456,31 +456,31 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         if subject_masks is not None:
             original_subject_masks = [ m.clone() for m in subject_masks ] # DEBUG
 
-            print(f"1 - subject_masks: {subject_masks.shape}") # DEBUG
+            print(f"1 - subject_masks: {[ u.shape for u in subject_masks ]}") # DEBUG
             subject_masks = [self.patch_embedding(u.unsqueeze(0)) for u in subject_masks]
             if save_tensors_dir is not None:
                 save_tensors(save_tensors_dir, {
-                    'subject_masks_after_patch_embedding': subject_masks
+                    'subject_masks_after_patch_embedding': subject_masks[0]
                 })
 
-            print(f"2 - subject_masks: {subject_masks[0].shape}") # DEBUG
+            print(f"2 - subject_masks: {[ u.shape for u in subject_masks ]}") # DEBUG
             subject_masks = [u.flatten(2).transpose(1, 2) for u in subject_masks]
             if save_tensors_dir is not None:
                 save_tensors(save_tensors_dir, {
-                    'subject_masks_after_flattening': subject_masks
+                    'subject_masks_after_flattening': subject_masks[0]
                 })
 
-            print(f"3 - subject_masks: {subject_masks[0].shape}") # DEBUG
+            print(f"3 - subject_masks: {[ u.shape for u in subject_masks ]}") # DEBUG
             subject_masks = torch.cat([
                 torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                         dim=1) for u in subject_masks
             ])
             if save_tensors_dir is not None:
                 save_tensors(save_tensors_dir, {
-                    'subject_masks_after_cat': subject_masks
+                    'subject_masks_after_cat': subject_masks[0]
                 })
-            
-            print(f"4 - subject_masks: {subject_masks.shape}") # DEBUG
+
+            print(f"4 - subject_masks: {[ u.shape for u in subject_masks ]}") # DEBUG
 
             ###### option 2: 
             subject_masks_2 = [ 
@@ -492,10 +492,10 @@ class PairedWanModel(ModelMixin, ConfigMixin):
                 ).view(1, -1, 1) # [1, 1, F', H', W'] -> [1, F'*H'*W', 1]
             for i, mask in enumerate(original_subject_masks)]
 
-            print(f"5 - subject_masks_2: {subject_masks_2[0].shape}") # DEBUG
+            print(f"5 - subject_masks_2: {[ u.shape for u in subject_masks_2 ]}") # DEBUG
             if save_tensors_dir is not None:
                 save_tensors(save_tensors_dir, {
-                    'subject_masks_2_after_interpolation': subject_masks_2
+                    'subject_masks_2_after_interpolation': subject_masks_2[0]
                 })
         ########################################
 
