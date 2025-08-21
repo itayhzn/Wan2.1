@@ -4,6 +4,7 @@ import math
 import torch
 import torch.cuda.amp as amp
 import torch.nn as nn
+import torch.nn.functional as TF
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.modeling_utils import ModelMixin
 
@@ -428,24 +429,14 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         # embeddings
         x1 = [self.patch_embedding(u.unsqueeze(0)) for u in x1]
         x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]
-        subject_masks = [self.patch_embedding(u.unsqueeze(0)) for u in subject_masks]
-
-        if save_tensors_dir is not None:
-            save_tensors(save_tensors_dir, {
-                'subject_masks_after_patch_embedding': subject_masks
-            })
-
+        print(f"1 - x1: {x1[0].shape}, x2: {x2[0].shape}") # DEBUG
+        
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x1])
         
         x1 = [u.flatten(2).transpose(1, 2) for u in x1]
         x2 = [u.flatten(2).transpose(1, 2) for u in x2]
-        subject_masks = [u.flatten(2).transpose(1, 2) for u in subject_masks]
-
-        if save_tensors_dir is not None:
-            save_tensors(save_tensors_dir, {
-                'subject_masks_after_flattening': subject_masks
-            })
+        print(f"2 - x1: {x1[0].shape}, x2: {x2[0].shape}")
 
         seq_lens = torch.tensor([u.size(1) for u in x1], dtype=torch.long)
     
@@ -459,15 +450,55 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                       dim=1) for u in x2
         ])
-        subject_masks = torch.cat([
-            torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
-                      dim=1) for u in subject_masks
-        ])
+        print(f"3 - x1: {x1.shape}, x2: {x2.shape}") # DEBUG
 
-        if save_tensors_dir is not None:
-            save_tensors(save_tensors_dir, {
-                'subject_masks_after_cat': subject_masks
-            })
+        ########################################
+        if subject_masks is not None:
+            original_subject_masks = subject_masks.clone() # DEBUG
+
+            print(f"1 - subject_masks: {subject_masks.shape}") # DEBUG
+            subject_masks = [self.patch_embedding(u.unsqueeze(0)) for u in subject_masks]
+            if save_tensors_dir is not None:
+                save_tensors(save_tensors_dir, {
+                    'subject_masks_after_patch_embedding': subject_masks
+                })
+
+            print(f"2 - subject_masks: {subject_masks[0].shape}") # DEBUG
+            subject_masks = [u.flatten(2).transpose(1, 2) for u in subject_masks]
+            if save_tensors_dir is not None:
+                save_tensors(save_tensors_dir, {
+                    'subject_masks_after_flattening': subject_masks
+                })
+
+            print(f"3 - subject_masks: {subject_masks[0].shape}") # DEBUG
+            subject_masks = torch.cat([
+                torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
+                        dim=1) for u in subject_masks
+            ])
+            if save_tensors_dir is not None:
+                save_tensors(save_tensors_dir, {
+                    'subject_masks_after_cat': subject_masks
+                })
+            
+            print(f"4 - subject_masks: {subject_masks.shape}") # DEBUG
+
+            ###### option 2: 
+            subject_masks_2 = [ 
+                TF.interpolate(
+                mask.unsqueeze(0).unsqueeze(0).float(), # [1, 1, F, H, W]
+                size=(grid_sizes[i][1], grid_sizes[i][2], grid_sizes[i][0]),
+                mode='trilinear',
+                align_corners=False
+                ).view(1, -1, 1) # [1, 1, F', H', W'] -> [1, F'*H'*W', 1]
+            for i, mask in enumerate(original_subject_masks)]
+
+            print(f"5 - subject_masks_2: {subject_masks_2[0].shape}") # DEBUG
+            if save_tensors_dir is not None:
+                save_tensors(save_tensors_dir, {
+                    'subject_masks_2_after_interpolation': subject_masks_2
+                })
+        ########################################
+
 
         # time embeddings
         with amp.autocast(dtype=torch.float32):
@@ -528,8 +559,6 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             original_x2=original_x2,
             subject_masks=subject_masks
             )
-
-        print(f"x1: {x1.shape}, x2: {x2.shape}, subject_masks: {subject_masks.shape if subject_masks is not None else None}") # DEBUG
 
         for i, block in enumerate(self.blocks):
             if i == len(self.blocks) - 1:
