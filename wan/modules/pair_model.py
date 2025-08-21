@@ -454,7 +454,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
 
         ########################################
         if subject_masks is not None:
-            original_subject_masks = subject_masks.clone() # DEBUG
+            original_subject_masks = [ m.clone() for m in subject_masks ] # DEBUG
 
             print(f"1 - subject_masks: {subject_masks.shape}") # DEBUG
             subject_masks = [self.patch_embedding(u.unsqueeze(0)) for u in subject_masks]
