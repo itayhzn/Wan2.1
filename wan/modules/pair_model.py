@@ -460,7 +460,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             subject_masks = [ 
                 TF.interpolate(
                 mask.unsqueeze(0).unsqueeze(0).float(), # [1, 1, F, H, W]
-                size=(grid_sizes[i][1], grid_sizes[i][2], grid_sizes[i][0]),
+                size=(grid_sizes[i][0].item(), grid_sizes[i][1].item(), grid_sizes[i][2].item()),
                 mode='trilinear',
                 align_corners=False
                 ).view(1, -1, 1) # [1, 1, F', H', W'] -> [1, F'*H'*W', 1]

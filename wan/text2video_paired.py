@@ -201,14 +201,14 @@ class PairedWanT2V:
                         size[1] // self.vae_stride[1],
                         size[0] // self.vae_stride[2])
 
-        subject_masks = [ 
-            TF.interpolate(
-            mask.unsqueeze(0).unsqueeze(0).float(),
-            size=(target_shape[1], target_shape[2], target_shape[3]),
-            mode='trilinear',
-            align_corners=False
-            ).squeeze(0) 
-        for mask in subject_masks] # [1, 1, F, H, W] -> [F, H, W]
+        # subject_masks = [ 
+        #     TF.interpolate(
+        #     mask.unsqueeze(0).unsqueeze(0).float(),
+        #     size=(target_shape[1], target_shape[2], target_shape[3]),
+        #     mode='trilinear',
+        #     align_corners=False
+        #     ).squeeze(0) 
+        # for mask in subject_masks] # [1, 1, F, H, W] -> [1, F, H, W]
 
 
         seq_len = math.ceil((target_shape[2] * target_shape[3]) /
