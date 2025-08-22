@@ -128,6 +128,8 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
 
         if should_edit:
             x2_edit = flash_attention(q2, k_edit, v_edit) # , k_lens=context_lens
+            print(f"x2_edit: {x2_edit.shape}") # DEBUG --- IGNORE ---
+            print(f"subject_masks: {subject_masks.shape}") # DEBUG --- IGNORE ---
             x2 = x2_context * (1 - subject_masks) + x2_edit * subject_masks
         else:
             x2 = x2_context
@@ -429,14 +431,12 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         # embeddings
         x1 = [self.patch_embedding(u.unsqueeze(0)) for u in x1]
         x2 = [self.patch_embedding(u.unsqueeze(0)) for u in x2]
-        print(f"1 - x1: {x1[0].shape}, x2: {x2[0].shape}") # DEBUG
         
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x1])
         
         x1 = [u.flatten(2).transpose(1, 2) for u in x1]
         x2 = [u.flatten(2).transpose(1, 2) for u in x2]
-        print(f"2 - x1: {x1[0].shape}, x2: {x2[0].shape}")
 
         seq_lens = torch.tensor([u.size(1) for u in x1], dtype=torch.long)
     
@@ -450,8 +450,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                       dim=1) for u in x2
         ])
-        print(f"3 - x1: {x1.shape}, x2: {x2.shape}") # DEBUG
-
+        
         ########################################
         if subject_masks is not None:
             subject_masks = torch.stack([ 
