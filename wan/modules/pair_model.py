@@ -454,23 +454,15 @@ class PairedWanModel(ModelMixin, ConfigMixin):
 
         ########################################
         if subject_masks is not None:
-
-            print(f"1 - subject_masks: {[ u.shape for u in subject_masks ]}") # DEBUG
-            
-            subject_masks = [ 
+            subject_masks = torch.stack([ 
                 TF.interpolate(
                 mask.unsqueeze(0).unsqueeze(0).float(), # [1, 1, F, H, W]
                 size=(grid_sizes[i][0].item(), grid_sizes[i][1].item(), grid_sizes[i][2].item()),
                 mode='trilinear',
                 align_corners=False
                 ).view(1, -1, 1) # [1, 1, F', H', W'] -> [1, F'*H'*W', 1]
-            for i, mask in enumerate(subject_masks)]
+            for i, mask in enumerate(subject_masks)]).to(x1.device) # [B, F'*H'*W', 1]
 
-            print(f"5 - subject_masks_2: {[ u.shape for u in subject_masks ]}") # DEBUG
-            if save_tensors_dir is not None:
-                save_tensors(save_tensors_dir, {
-                    'subject_masks_after_interpolation': subject_masks[0]
-                })
         ########################################
 
 
