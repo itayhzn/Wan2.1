@@ -459,7 +459,7 @@ class PairedWanModel(ModelMixin, ConfigMixin):
                 size=(grid_sizes[i][0].item(), grid_sizes[i][1].item(), grid_sizes[i][2].item()),
                 mode='trilinear',
                 align_corners=False
-                ).view(1, -1, 1) # [1, 1, F', H', W'] -> [1, F'*H'*W', 1]
+                ).view(-1, 1, 1) # [1, 1, F', H', W'] -> [1, F'*H'*W', 1]
             for i, mask in enumerate(subject_masks)]).to(x1.device) # [B, F'*H'*W', 1]
 
         ########################################
