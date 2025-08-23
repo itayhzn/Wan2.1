@@ -48,7 +48,7 @@ class PairedWanSelfAttention(nn.Module):
         self.norm_q = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
         self.norm_k = WanRMSNorm(dim, eps=eps) if qk_norm else nn.Identity()
 
-    def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs, original_x1=None, original_x2=None, should_edit=False, subject_masks=None):
+    def forward(self, x1, x2, grid_sizes, edit_context, subject_context, seq_lens, freqs, original_x1=None, original_x2=None, should_edit=False, subject_masks=None, self_attn_option=0):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -71,17 +71,58 @@ class PairedWanSelfAttention(nn.Module):
             # subject_masks = subject_masks.view(1, -1, 1, 1)
             q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
             # q_edit, k_edit, v_edit = self.qkv_fn(edit_context) # [B, L2, n, d]
-
-            x2 = flash_attention(
-                q=rope_apply(q2, grid_sizes, freqs),
-                k=rope_apply(k2, grid_sizes, freqs),
-                v=v2,
-                k_lens=seq_lens,
-                window_size=self.window_size) # [B, F*H*W, n, d]
+            if self_attn_option == 0:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 1:
+                x2 = flash_attention(
+                    q=rope_apply(q2 * subject_masks + q1 * (1 - subject_masks), grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 2:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2 * subject_masks + k1 * (1 - subject_masks), grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 3:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2 * subject_masks + v1 * (1 - subject_masks),
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 4:
+                x2 = flash_attention(
+                    q=rope_apply(q2 * subject_masks + q1 * (1 - subject_masks), grid_sizes, freqs),
+                    k=rope_apply(k2 * subject_masks + k1 * (1 - subject_masks), grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 5:
+                x2 = flash_attention(
+                    q=rope_apply(q2 * subject_masks + q1 * (1 - subject_masks), grid_sizes, freqs),
+                    k=rope_apply(k2 * subject_masks + k1 * (1 - subject_masks), grid_sizes, freqs),
+                    v=v2 * subject_masks + v1 * (1 - subject_masks),
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 6:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+                x2 = x2 * subject_masks + x1 * (1 - subject_masks)
         else:
             x2 = x1
-
-
 
         # output
         x1 = x1.flatten(2)
@@ -100,7 +141,7 @@ class PairedWanSelfAttention(nn.Module):
 
 class PairedWanT2VCrossAttention(PairedWanSelfAttention):
 
-    def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False, original_x1=None, original_x2=None, subject_masks=None):
+    def forward(self, x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir=None, should_edit=False, original_x1=None, original_x2=None, subject_masks=None, cross_attn_option=0):
         r"""
         Args:
             x1, x2(Tensor): Shape [B, L1, C]
@@ -126,9 +167,21 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
         x2_context = flash_attention(q2, k_context1, v_context1) # , k_lens=context_lens
 
         if should_edit:
-            x2_edit = flash_attention(q2, k_edit, v_edit) # , k_lens=context_lens
-            # x2 = x2_context * (1 - subject_masks) + x2_edit * subject_masks
-            x2 = x2_edit
+            if cross_attn_option == 0:
+                x2 = flash_attention(q2, k_edit, v_edit)
+            if cross_attn_option == 1:
+                x2 = flash_attention(q2, k_edit, v_edit)
+                x2 = x2 * subject_masks + x1 * (1 - subject_masks)
+            elif cross_attn_option == 2:
+                x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit, v_edit)
+            elif cross_attn_option == 3:
+                x2 = flash_attention(q2, k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
+            elif cross_attn_option == 4:
+                x2 = flash_attention(q2, k_edit, v_edit * subject_masks + v_context1 * (1 - subject_masks))
+            elif cross_attn_option == 5:
+                x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
+            elif cross_attn_option == 6:
+                x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit * subject_masks + v_context1 * (1 - subject_masks))            
         else:
             x2 = x2_context
 
@@ -200,7 +253,9 @@ class PairedWanAttentionBlock(nn.Module):
         should_edit=False,
         original_x1=None,
         original_x2=None,
-        subject_masks=None
+        subject_masks=None,
+        self_attn_option=0,
+        cross_attn_option=0
     ):
         r"""
         Args:
@@ -227,14 +282,16 @@ class PairedWanAttentionBlock(nn.Module):
             original_x1=original_x1,
             original_x2=original_x2,
             should_edit=should_edit,
-            subject_masks=subject_masks)
+            subject_masks=subject_masks,
+            self_attn_option=self_attn_option
+        )
         with amp.autocast(dtype=torch.float32):
             x1 = x1 + y1 * e[2]
             x2 = x2 + y2 * e[2]
 
         # cross-attention & ffn function
-        def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks):
-            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks=subject_masks)
+        def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks, cross_attn_option):
+            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks=subject_masks, cross_attn_option=cross_attn_option)
             x1 = x1 + _x1
             x2 = x2 + _x2
             y1 = self.ffn(self.norm2(x1).float() * (1 + e[4]) + e[3])
@@ -244,7 +301,7 @@ class PairedWanAttentionBlock(nn.Module):
                 x2 = x2 + y2 * e[5]
             return x1, x2
 
-        x1, x2 = cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks=subject_masks)
+        x1, x2 = cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks=subject_masks, cross_attn_option=cross_attn_option)
         return x1, x2
     
     def qkv_fn(self, x):
@@ -386,7 +443,9 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         subject_context=None,
         save_tensors_dir=None,
         should_edit=False,
-        subject_masks=None
+        subject_masks=None,
+        self_attn_option=0,
+        cross_attn_option=0
     ):
         r"""
         Forward pass through the diffusion model
@@ -520,8 +579,10 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             should_edit=should_edit,
             original_x1=original_x1,
             original_x2=original_x2,
-            subject_masks=subject_masks
-            )
+            subject_masks=subject_masks,
+            self_attn_option=self_attn_option,
+            cross_attn_option=cross_attn_option
+        )
 
         for i, block in enumerate(self.blocks):
             if i == len(self.blocks) - 1:

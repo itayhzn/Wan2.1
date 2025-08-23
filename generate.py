@@ -293,7 +293,18 @@ def _parse_args():
         default="noname",
         help="The name of the experiment"
     )
-
+    parser.add_argument(
+        "--self_attn_option",
+        type=int,
+        default=0,
+        help="The self attention option"
+    )
+    parser.add_argument(
+        "--cross_attn_option",
+        type=int,
+        default=0,
+        help="The cross attention option"
+    )
 
     args = parser.parse_args()
 
@@ -501,6 +512,8 @@ def generate(args):
                 encoded_params=encoded_params,
                 original_video_path=original_save_file,
                 timestep_for_edit=args.timestep_for_edit,
+                self_attn_option=args.self_attn_option,
+                cross_attn_option=args.cross_attn_option
                 )
 
     elif "i2v" in args.task:

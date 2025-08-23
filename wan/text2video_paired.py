@@ -137,6 +137,8 @@ class PairedWanT2V:
                  encoded_params=None,
                  original_video_path=None,
                  timestep_for_edit=0,
+                 self_attn_option=0,
+                 cross_attn_option=0
                  ):
         r"""
         Generates video frames from text prompt using diffusion process.
@@ -300,8 +302,8 @@ class PairedWanT2V:
             latents1 = noise1
             latents2 = noise2
             
-            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': subject_masks}
-            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': subject_masks}
+            arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': subject_masks, 'self_attn_option': self_attn_option, 'cross_attn_option': cross_attn_option}
+            arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': subject_masks, 'self_attn_option': self_attn_option, 'cross_attn_option': cross_attn_option}
 
             edit_timesteps = timesteps[timestep_for_edit:]
 
