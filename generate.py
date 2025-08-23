@@ -341,7 +341,7 @@ def generate(args):
         args.prompt, args.task, args.size, args.ulysses_size, args.ring_size, args.base_seed,
         timestep_for_edit=args.timestep_for_edit,
         edit_prompt=args.edit_prompt, subject_prompt=args.subject_prompt,
-        experiment_name=args.experiment_name)
+        experiment_name=args.experiment_name, self_attn_option=args.self_attn_option, cross_attn_option=args.cross_attn_option)
     
     suffix = '.png' if "t2i" in args.task else '.mp4'
     dir_name = 'generated'
