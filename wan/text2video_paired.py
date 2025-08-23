@@ -135,7 +135,9 @@ class PairedWanT2V:
                  edit_prompt="",
                  subject_prompt="",
                  encoded_params=None,
-                 original_video_path=None):
+                 original_video_path=None,
+                 timestep_for_edit=0,
+                 ):
         r"""
         Generates video frames from text prompt using diffusion process.
 
@@ -301,7 +303,7 @@ class PairedWanT2V:
             arg_c = {'context1': context, 'context2': context, 'seq_len': seq_len, 'edit_context': edit_context, 'subject_context': subject_context, 'subject_masks': subject_masks}
             arg_null = {'context1': context_null, 'context2': context_null, 'seq_len': seq_len, 'edit_context': context_null, 'subject_context': context_null, 'subject_masks': subject_masks}
 
-            edit_timesteps = timesteps[0:]
+            edit_timesteps = timesteps[timestep_for_edit:]
 
 
             for idx, t in enumerate(tqdm(timesteps)):

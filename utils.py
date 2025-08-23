@@ -8,7 +8,7 @@ from PIL import Image
 import cv2
 import uuid
 
-def encode_params(prompt, task, size, ulysses_size, ring_size, edit_prompt=None, subject_prompt=None, experiment_name=None):
+def encode_params(prompt, task, size, ulysses_size, ring_size, seed=None, timestep_for_edit=0,edit_prompt=None, subject_prompt=None, experiment_name=None):
     def escape(s):
         return s.replace(" ", "_").replace("/", "_").replace(",", "_") \
                  .replace("'", "_").replace('"', "_").replace(".", "_")[:30]
@@ -20,10 +20,10 @@ def encode_params(prompt, task, size, ulysses_size, ring_size, edit_prompt=None,
     if experiment_name:
         save_file += f"{experiment_name}_"
 
-    save_file += f"{task}_{size.replace('*','x') if sys.platform=='win32' else size}_{ulysses_size}_{ring_size}_{escape(prompt)}"
+    save_file += f"{task}_{size.replace('*','x') if sys.platform=='win32' else size}_{ulysses_size}_{ring_size}_{escape(prompt)}_{seed}"
     
     if edit_prompt:
-        save_file += "_SUBJECT_" + escape(subject_prompt) + "_EDIT_" + escape(edit_prompt)
+        save_file += f"_EditT={timestep_for_edit}_SUBJECT_" + escape(subject_prompt) + "_EDIT_" + escape(edit_prompt)
 
     return save_file
 

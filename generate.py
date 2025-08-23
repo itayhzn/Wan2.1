@@ -282,6 +282,12 @@ def _parse_args():
         help="The subject prompts. Must be used with paired_generation=True."
     )
     parser.add_argument(
+        "--timestep_for_edit",
+        type=int,
+        default=0,
+        help="The timestep for editing. Must be used with paired_generation=True."
+    )
+    parser.add_argument(
         "--experiment_name",
         type=str,
         default="noname",
@@ -321,8 +327,9 @@ def generate(args):
     _init_logging(rank)
 
     encoded_params = encode_params(
-        args.prompt, args.task, args.size, args.ulysses_size, args.ring_size,
-        edit_prompt=args.edit_prompt, subject_prompt=args.subject_prompt, 
+        args.prompt, args.task, args.size, args.ulysses_size, args.ring_size, args.base_seed,
+        timestep_for_edit=args.timestep_for_edit,
+        edit_prompt=args.edit_prompt, subject_prompt=args.subject_prompt,
         experiment_name=args.experiment_name)
     
     suffix = '.png' if "t2i" in args.task else '.mp4'
@@ -452,17 +459,16 @@ def generate(args):
         if args.paired_generation:
             original_video = video
 
-            if args.paired_generation is True and original_video is not None:
-                original_save_file = args.save_file.replace(
-                    '.mp4', '_original.mp4')
-                logging.info(f"Saving original video to {original_save_file}")
-                cache_video(
-                    tensor=original_video[None],
-                    save_file=original_save_file,
-                    fps=cfg.sample_fps,
-                    nrow=1,
-                    normalize=True,
-                    value_range=(-1, 1))
+            original_save_file = args.save_file.replace(
+                '.mp4', '_original.mp4')
+            logging.info(f"Saving original video to {original_save_file}")
+            cache_video(
+                tensor=original_video[None],
+                save_file=original_save_file,
+                fps=cfg.sample_fps,
+                nrow=1,
+                normalize=True,
+                value_range=(-1, 1))
 
             logging.info("Creating WanT2V Paired pipeline.")
             wan_t2v = wan.PairedWanT2V(
@@ -494,6 +500,7 @@ def generate(args):
                 subject_prompt=args.subject_prompt,
                 encoded_params=encoded_params,
                 original_video_path=original_save_file,
+                timestep_for_edit=args.timestep_for_edit,
                 )
 
     elif "i2v" in args.task:
