@@ -128,9 +128,8 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
 
         if should_edit:
             x2_edit = flash_attention(q2, k_edit, v_edit) # , k_lens=context_lens
-            print(f"x2_edit: {x2_edit.shape}") # DEBUG --- IGNORE ---
-            print(f"subject_masks: {subject_masks.shape}") # DEBUG --- IGNORE ---
-            x2 = x2_context * (1 - subject_masks) + x2_edit * subject_masks
+            # x2 = x2_context * (1 - subject_masks) + x2_edit * subject_masks
+            x2 = x2_edit
         else:
             x2 = x2_context
 
