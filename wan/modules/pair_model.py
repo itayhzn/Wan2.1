@@ -70,6 +70,7 @@ class PairedWanSelfAttention(nn.Module):
         if should_edit:
             # subject_masks = subject_masks.view(1, -1, 1, 1)
             q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
+            q1_orig, k1_orig, v1_orig = self.qkv_fn(original_x1)
             # q_edit, k_edit, v_edit = self.qkv_fn(edit_context) # [B, L2, n, d]
             if self_attn_option == 0:
                 x2 = flash_attention(
@@ -121,8 +122,56 @@ class PairedWanSelfAttention(nn.Module):
                     k_lens=seq_lens,
                     window_size=self.window_size)
                 x2 = x2 * subject_masks + x1 * (1 - subject_masks)
+            elif self_attn_option == 7:
+                x2 = flash_attention(
+                    q=rope_apply(q2 * subject_masks + q1_orig * (1 - subject_masks), grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 8:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2 * subject_masks + k1_orig * (1 - subject_masks), grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 9:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2 * subject_masks + v1_orig * (1 - subject_masks),
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 10:
+                x2 = flash_attention(
+                    q=rope_apply(q2 * subject_masks + q1_orig * (1 - subject_masks), grid_sizes, freqs),
+                    k=rope_apply(k2 * subject_masks + k1_orig * (1 - subject_masks), grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 11:
+                x2 = flash_attention(
+                    q=rope_apply(q2 * subject_masks + q1_orig * (1 - subject_masks), grid_sizes, freqs),
+                    k=rope_apply(k2 * subject_masks + k1_orig * (1 - subject_masks), grid_sizes, freqs),
+                    v=v2 * subject_masks + v1_orig * (1 - subject_masks),
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 12:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+                x2 = x2 * subject_masks + original_x1 * (1 - subject_masks)
         else:
-            x2 = x1
+            x2 = flash_attention(
+                q=rope_apply(q2, grid_sizes, freqs),
+                k=rope_apply(k2, grid_sizes, freqs),
+                v=v2,
+                k_lens=seq_lens,
+                window_size=self.window_size)
 
         # output
         x1 = x1.flatten(2)
@@ -164,26 +213,33 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
         # compute attention
         x1 = flash_attention(q1, k_context1, v_context1) # , k_lens=context_lens
 
-        x2_context = flash_attention(q2, k_context1, v_context1) # , k_lens=context_lens
-
         if should_edit:
+            q1_orig = self.norm_q(self.q(original_x1)).view(b, -1, n, d)
+            # if cross_attn_option == 0:
+            #     x2 = flash_attention(q2, k_edit, v_edit)
             if cross_attn_option == 0:
                 x2 = flash_attention(q2, k_edit, v_edit)
-            if cross_attn_option == 1:
-                x2 = flash_attention(q2, k_edit, v_edit)
                 x2 = x2 * subject_masks + x1 * (1 - subject_masks)
-            elif cross_attn_option == 2:
+            elif cross_attn_option == 1:
                 x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit, v_edit)
+            elif cross_attn_option == 2:
+                x2 = flash_attention(q2, k_edit, v_edit)
+                x2 = x2 * subject_masks + original_x1 * (1 - subject_masks)
             elif cross_attn_option == 3:
-                x2 = flash_attention(q2, k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
+                x2 = flash_attention(q2 * subject_masks + q1_orig * (1 - subject_masks), k_edit, v_edit)
             elif cross_attn_option == 4:
-                x2 = flash_attention(q2, k_edit, v_edit * subject_masks + v_context1 * (1 - subject_masks))
-            elif cross_attn_option == 5:
-                x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
-            elif cross_attn_option == 6:
-                x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit * subject_masks + v_context1 * (1 - subject_masks))            
+                x2_edit = flash_attention(q2, k_edit, v_edit)
+                x2 = x2_edit * subject_masks + x2 * (1 - subject_masks)
+            # elif cross_attn_option == 3:
+            #     x2 = flash_attention(q2, k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
+            # elif cross_attn_option == 4:
+            #     x2 = flash_attention(q2, k_edit, v_edit * subject_masks + v_context1 * (1 - subject_masks))
+            # elif cross_attn_option == 5:
+            #     x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
+            # elif cross_attn_option == 6:
+            #     x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit * subject_masks + v_context1 * (1 - subject_masks))            
         else:
-            x2 = x2_context
+            x2 = flash_attention(q2, k_context1, v_context1)
 
         # output
         x1 = x1.flatten(2)
@@ -477,9 +533,6 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         if self.freqs.device != device:
             self.freqs = self.freqs.to(device)
 
-        original_x1 = x1
-        original_x2 = x2
-
         if y1 is not None:
             x1 = [torch.cat([u, v], dim=0) for u, v in zip(x1, y1)]
         if y2 is not None:
@@ -564,6 +617,9 @@ class PairedWanModel(ModelMixin, ConfigMixin):
             context1 = torch.concat([context_clip, context1], dim=1)
             context2 = torch.concat([context_clip, context2], dim=1)
 
+        original_x1 = x1
+        original_x2 = x2
+
         # arguments
         kwargs = dict(
             e=e0,
@@ -585,13 +641,8 @@ class PairedWanModel(ModelMixin, ConfigMixin):
         )
 
         for i, block in enumerate(self.blocks):
-            if i == len(self.blocks) - 1:
-                kwargs['save_tensors_dir'] = save_tensors_dir
-
             x1, x2 = block(x1, x2, **kwargs)
 
-            if i == len(self.blocks) - 1:
-                kwargs['save_tensors_dir'] = None
 
         # head
         x1 = self.head(x1, e) 
