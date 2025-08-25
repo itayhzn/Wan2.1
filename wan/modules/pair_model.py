@@ -164,8 +164,9 @@ class PairedWanSelfAttention(nn.Module):
                     v=v2,
                     k_lens=seq_lens,
                     window_size=self.window_size)
-                x2 = x2 * subject_masks + original_x1 * (1 - subject_masks)
+                x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)
         else:
+            q2, k2, v2 = self.qkv_fn(x2)
             x2 = flash_attention(
                 q=rope_apply(q2, grid_sizes, freqs),
                 k=rope_apply(k2, grid_sizes, freqs),
@@ -224,12 +225,12 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
                 x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit, v_edit)
             elif cross_attn_option == 2:
                 x2 = flash_attention(q2, k_edit, v_edit)
-                x2 = x2 * subject_masks + original_x1 * (1 - subject_masks)
+                x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)
             elif cross_attn_option == 3:
                 x2 = flash_attention(q2 * subject_masks + q1_orig * (1 - subject_masks), k_edit, v_edit)
-            elif cross_attn_option == 4:
-                x2_edit = flash_attention(q2, k_edit, v_edit)
-                x2 = x2_edit * subject_masks + x2 * (1 - subject_masks)
+            # elif cross_attn_option == 4:
+            #     x2_edit = flash_attention(q2, k_edit, v_edit)
+            #     x2 = x2_edit * subject_masks + x2 * (1 - subject_masks)
             # elif cross_attn_option == 3:
             #     x2 = flash_attention(q2, k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
             # elif cross_attn_option == 4:
@@ -347,7 +348,7 @@ class PairedWanAttentionBlock(nn.Module):
 
         # cross-attention & ffn function
         def cross_attn_ffn(x1, x2, grid_sizes, context1, context2, edit_context, subject_context, context_lens, e, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks, cross_attn_option):
-            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context, subject_context, context_lens, save_tensors_dir, should_edit, original_x1, original_x2, subject_masks=subject_masks, cross_attn_option=cross_attn_option)
+            _x1, _x2 = self.cross_attn(self.norm3(x1), self.norm3(x2), grid_sizes, context1, context2, edit_context=edit_context, subject_context=subject_context, context_lens=context_lens, save_tensors_dir=save_tensors_dir, should_edit=should_edit, original_x1=original_x1, original_x2=original_x2, subject_masks=subject_masks, cross_attn_option=cross_attn_option)
             x1 = x1 + _x1
             x2 = x2 + _x2
             y1 = self.ffn(self.norm2(x1).float() * (1 + e[4]) + e[3])
