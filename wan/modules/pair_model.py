@@ -164,7 +164,7 @@ class PairedWanSelfAttention(nn.Module):
                     v=v2,
                     k_lens=seq_lens,
                     window_size=self.window_size)
-                x2 = x2 * subject_masks + original_x1 * (1 - subject_masks)
+                x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)
         else:
             q2, k2, v2 = self.qkv_fn(x2)
             x2 = flash_attention(
@@ -225,14 +225,12 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
                 x2 = flash_attention(q2 * subject_masks + q1 * (1 - subject_masks), k_edit, v_edit)
             elif cross_attn_option == 2:
                 x2 = flash_attention(q2, k_edit, v_edit)
-                print(f"x2.shape: {x2.shape}, original_x1.shape: {original_x1.shape}, subject_masks.shape: {subject_masks.shape}")
-                x2 = x2 * subject_masks + original_x1 * (1 - subject_masks)
+                x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)
             elif cross_attn_option == 3:
                 x2 = flash_attention(q2 * subject_masks + q1_orig * (1 - subject_masks), k_edit, v_edit)
-            elif cross_attn_option == 4:
-                x2_edit = flash_attention(q2, k_edit, v_edit)
-                print(f"x2.shape: {x2.shape}, x2_edit.shape: {x2_edit.shape}, subject_masks.shape: {subject_masks.shape}")
-                x2 = x2_edit * subject_masks + x2 * (1 - subject_masks)
+            # elif cross_attn_option == 4:
+            #     x2_edit = flash_attention(q2, k_edit, v_edit)
+            #     x2 = x2_edit * subject_masks + x2 * (1 - subject_masks)
             # elif cross_attn_option == 3:
             #     x2 = flash_attention(q2, k_edit * subject_masks + k_context1 * (1 - subject_masks), v_edit)
             # elif cross_attn_option == 4:
