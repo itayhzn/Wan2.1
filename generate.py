@@ -470,16 +470,16 @@ def generate(args):
         if args.paired_generation:
             original_video = video
 
-            original_save_file = args.save_file.replace(
-                '.mp4', '_original.mp4')
-            logging.info(f"Saving original video to {original_save_file}")
-            cache_video(
-                tensor=original_video[None],
-                save_file=original_save_file,
-                fps=cfg.sample_fps,
-                nrow=1,
-                normalize=True,
-                value_range=(-1, 1))
+            # original_save_file = args.save_file.replace(
+            #     '.mp4', '_original.mp4')
+            # logging.info(f"Saving original video to {original_save_file}")
+            # cache_video(
+            #     tensor=original_video[None],
+            #     save_file=original_save_file,
+            #     fps=cfg.sample_fps,
+            #     nrow=1,
+            #     normalize=True,
+            #     value_range=(-1, 1))
 
             logging.info("Creating WanT2V Paired pipeline.")
             wan_t2v = wan.PairedWanT2V(
