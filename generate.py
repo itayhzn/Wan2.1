@@ -244,6 +244,26 @@ def _parse_args():
         default=5.0,
         help="Classifier free guidance scale.")
 
+    parser.add_argument(
+        "--prompts",
+        type=str,
+        nargs='*',
+        default=[],
+        help="(For batch generation) The prompts to generate the image or video from. If this is set, --prompt will be ignored.")
+    parser.add_argument(
+        "--seeds",
+        type=int,
+        nargs='*',
+        default=[],
+        help="(For batch generation) The seeds to use for generating the image or video. If this is set, --base_seed will be ignored."
+    )
+    parser.add_argument(
+        "--experiment_name",
+        type=str,
+        default='default',
+        help="The name of the experiment, used to distinguish different runs."
+    )
+
     args = parser.parse_args()
 
     _validate_args(args)
@@ -556,11 +576,12 @@ def generate(args):
 
     if rank == 0:
         if args.save_file is None:
+            dirname = "generated"
             formatted_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             formatted_prompt = args.prompt.replace(" ", "_").replace("/",
                                                                      "_")[:50]
             suffix = '.png' if "t2i" in args.task else '.mp4'
-            args.save_file = f"{args.task}_{args.size.replace('*','x') if sys.platform=='win32' else args.size}_{args.ulysses_size}_{args.ring_size}_{formatted_prompt}_{formatted_time}" + suffix
+            args.save_file = f"{dirname}/{formatted_time}_{args.experiment_name}_{args.task}_{args.size.replace('*','x') if sys.platform=='win32' else args.size}_{args.ulysses_size}_{args.ring_size}_{formatted_prompt}" + suffix
 
         if "t2i" in args.task:
             logging.info(f"Saving generated image to {args.save_file}")
@@ -584,4 +605,12 @@ def generate(args):
 
 if __name__ == "__main__":
     args = _parse_args()
-    generate(args)
+    args.prompts = [args.prompt] if len(args.prompts) == 0 else args.prompts
+    args.seeds = [args.base_seed] if len(args.seeds) == 0 else args.seeds
+
+    for prompt in args.prompts:
+        for seed in args.seeds:
+            args.prompt = prompt
+            args.base_seed = seed
+            args.save_file = None
+            generate(args)
