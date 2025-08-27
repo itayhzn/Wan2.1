@@ -401,7 +401,9 @@ def generate(args):
             sampling_steps=args.sample_steps,
             guide_scale=args.sample_guide_scale,
             seed=args.base_seed,
-            offload_model=args.offload_model)
+            offload_model=args.offload_model,
+            encoded_params=utils.encode_params(args.prompt, args.base_seed, args.experiment_name)
+        )
 
     elif "i2v" in args.task:
         if args.prompt is None:
@@ -579,7 +581,7 @@ def generate(args):
     if rank == 0:
         if args.save_file is None:
             dirname = "generated"
-            
+
             filename = utils.encode_params(args.prompt, args.base_seed, args.experiment_name)
 
             suffix = '.png' if "t2i" in args.task else '.mp4'
