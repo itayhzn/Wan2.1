@@ -27,6 +27,8 @@ def encode_params(prompt, seed, task=None, size=None, ulysses_size=None, ring_si
         save_file += f"{ulysses_size}_"
     if ring_size:
         save_file += f"{ring_size}_"
+    if prompt:
+        save_file += f"{escape(prompt)}_"
     if seed:
         save_file += f"{seed}_"
     
