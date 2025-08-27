@@ -47,7 +47,7 @@ if __name__ == "__main__":
         # "Two balls on opposite sides of a white plane, moving straight toward each other to collide.",
         # "Minimal schematic: one ball goes left to right, another right to left, head-on at center.",
         # "On a clean plane, two balls approach directly from opposite directions, colliding at midpoint.",
-        
+
         # "An overview of a white plane, a red ball moving from left to right at constant velocity",
         # "An overview of a white plane, a green ball moving diagonally from top left to bottom right at constant velocity",
         # "An overview of a white plane, a red ball moving from left to right and a blue ball moving from right to left. they collide at the center and bounce back symmetrically",
@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     seeds = [ '11' ]
 
-    experiment_name = "physics-02"
+    experiment_name = "physics-03"
 
     os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}"  --seeds {' '.join(seeds)} --experiment_name "{experiment_name}" """)
 
