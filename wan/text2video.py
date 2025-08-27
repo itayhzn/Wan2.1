@@ -14,6 +14,8 @@ import torch.cuda.amp as amp
 import torch.distributed as dist
 from tqdm import tqdm
 
+from utils import save_tensors
+
 from .distributed.fsdp import shard_model
 from .modules.model import WanModel
 from .modules.t5 import T5EncoderModel
@@ -230,7 +232,7 @@ class WanT2V:
             arg_c = {'context': context, 'seq_len': seq_len}
             arg_null = {'context': context_null, 'seq_len': seq_len}
 
-            for _, t in enumerate(tqdm(timesteps)):
+            for idx, t in enumerate(tqdm(timesteps)):
                 latent_model_input = latents
                 timestep = [t]
 
@@ -252,6 +254,12 @@ class WanT2V:
                     return_dict=False,
                     generator=seed_g)[0]
                 latents = [temp_x0.squeeze(0)]
+
+                if idx <= 10:
+                    x0_pred = latents[0] - sample_scheduler.get_sigma(idx) * noise_pred
+                    save_tensors('tensors', {
+                        'x0_pred': x0_pred
+                    })
 
             x0 = latents
             if offload_model:

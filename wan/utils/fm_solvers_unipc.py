@@ -800,3 +800,6 @@ class FlowUniPCMultistepScheduler(SchedulerMixin, ConfigMixin):
 
     def __len__(self):
         return self.config.num_train_timesteps
+
+    def get_sigma(self, idx):
+        return self.sigmas[idx]
