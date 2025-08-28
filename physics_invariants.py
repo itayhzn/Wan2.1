@@ -1,9 +1,11 @@
+from datetime import time
 import torch
 import torch.nn.functional as F
 import numpy as np
 import os
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
+from torch_dbscan import dbscan
 
 def compute_foreground_mask(x0_pred, channel=0, tau=0.1):
     x0_pred = x0_pred[channel] # channel 0
@@ -21,45 +23,68 @@ def compute_foreground_mask(x0_pred, channel=0, tau=0.1):
 
     return x0_pred.view(f, h, w)
 
-def compute_objects_masks(fg_mask, top_p=0.2, kappa=16.0, bg_logit=-2.0, min_samples=5, eps_scale=1.5):
+def compute_objects_masks(fg_mask, top_p=0.08, min_samples=10, eps_scale=1.5):
     f, h, w = fg_mask.shape[0], fg_mask.shape[1], fg_mask.shape[2]
-
-    fg_mask = fg_mask.numpy()
-    
-    tt, yy, xx = np.meshgrid(np.arange(f), np.arange(h), np.arange(w), indexing='ij')
+    device = fg_mask.device
+    dtype = fg_mask.dtype
 
     # step 1: select top-p foreground pixels
-    fg_mask_flat = fg_mask.reshape(-1)
-    thres = np.quantile(fg_mask_flat, 1 - top_p)
-    mask_bools = (fg_mask_flat >= thres)
-    xs = xx.reshape(-1)[mask_bools].astype(np.float32)
-    ys = yy.reshape(-1)[mask_bools].astype(np.float32)
-    ts = tt.reshape(-1)[mask_bools].astype(np.float32)
-    ws = fg_mask_flat[mask_bools].astype(np.float32)
-    pts = np.stack([xs, ys, ts], axis=1)
+    fg_mask_flat = fg_mask.view(-1)
+    thres = torch.quantile(fg_mask_flat, 1 - top_p)
+    sel_mask = (fg_mask_flat >= thres).to(torch.int32)
+    idx = torch.nonzero(sel_mask, as_tuple=False).squeeze(1)
+
+    # unravel indices
+    tt = idx // (h * w)
+    yy = (idx % (h * w)) // w
+    xx = (idx % (h * w)) % w
+
+    # points in 3D space
+    pts = torch.stack([xx, yy, tt], dim=1).to(device=device, dtype=dtype)
+    wts = fg_mask_flat[sel_mask].to(device=device, dtype=dtype)
+
+    print(pts.shape)
 
     # step 2: auto-tune eps from kNN distances
-    k = min(5, len(pts)-1) if len(pts) > 5 else 1
+    k = min(min_samples, max(pts.shape[0]-1, 1)) if len(pts) > min_samples else 1
+    D = torch.cdist(pts, pts)
+    
     if k >= 1:
-        nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto').fit(pts)
-        distances, _ = nbrs.kneighbors(pts)
-        base = np.median(distances[:, -1])
-        eps = max(1.0, eps_scale * base)
+        knn_d, _ = torch.topk(D, k=k+1, largest=False)
+        base = torch.median(knn_d[:, -1])
+        eps = torch.clamp(eps_scale * base, min=torch.tensor(1.0, device=device, dtype=dtype)).item()
     else:
         eps = 3.0
 
-    # # step 3: cluster using DBSCAN
-    db = DBSCAN(eps=eps, min_samples=min_samples).fit(pts, sample_weight=ws)
-    labels = db.labels_
+    # step 3: cluster using DBSCAN
+    neighborhoods = D < eps
+    neighbor_counts = torch.sum(neighborhoods, dim=1)
+    core_points = neighbor_counts >= min_samples
+
+    labels = torch.full((pts.shape[0],), -1, dtype=torch.int32, device=device)
+    cluster_id = 0
+    for i in range(pts.shape[0]):
+        if core_points[i] and labels[i] == -1:
+            # Start a new cluster
+            labels[i] = cluster_id
+            cluster_members = [i]
+            while cluster_members:
+                new_members = []
+                for member in cluster_members:
+                    neighbors = torch.where(neighborhoods[member] & (labels == -1))[0]
+                    labels[neighbors] = cluster_id
+                    new_members.extend(neighbors.tolist())
+                cluster_members = new_members
+            cluster_id += 1
 
     # step 4: create an f**w image
-    mask = -1 * np.ones((f, h, w), dtype=np.int32)
-    for i in range(len(labels)):
-        if labels[i] != -1:
-            x, y, t = int(xs[i]), int(ys[i]), int(ts[i])
-            mask[t, y, x] = labels[i]
+    mask = torch.full((f, h, w), -1, dtype=torch.int32, device=device)
+        
+    valid = labels >= 0
+    if valid.any():
+        mask[tt[valid], yy[valid], xx[valid]] = labels[valid]
 
-    return torch.tensor(mask)
+    return mask
 
 def compute_physical_properties(fg_mask):
     masses = compute_object_masses(fg_mask) # [f, num_objects]
@@ -135,10 +160,15 @@ def compute_losses_aux(masses, edge_mass, com_velocities):
     return losses
 
 def compute_losses(x0_pred):
+    start_time = time.time()
     output = compute_foreground_mask(x0_pred, tau=0.1)
     output = compute_objects_masks(output)
     masses, edge_mass, com_positions, com_velocities = compute_physical_properties(output)
 
-    return compute_losses_aux(masses, edge_mass, com_velocities)
+    losses = compute_losses_aux(masses, edge_mass, com_velocities)
+    end_time = time.time()
+
+    print(f"compute_losses took {end_time - start_time:.1f} seconds")
+    return losses
 
 __all__ = ['compute_losses']
