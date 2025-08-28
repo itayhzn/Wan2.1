@@ -268,7 +268,7 @@ class WanT2V:
                 noise_pred = noise_pred_uncond + guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
 
-                latents = optimizer.optimize(latents, timestep, idx, noise_pred)
+                latents = optimizer.optimize(latents, timestep, idx, noise_pred, sample_scheduler.get_sigma(idx))
 
                 temp_x0 = sample_scheduler.step(
                     noise_pred.unsqueeze(0),
@@ -278,11 +278,11 @@ class WanT2V:
                     generator=seed_g)[0]
                 latents = [temp_x0.squeeze(0)]
 
-                if idx <= 10:
-                    x0_pred = latents[0] - sample_scheduler.get_sigma(idx) * noise_pred
-                    save_tensors(f'tensors/{encoded_params}', {
-                        f'x0_pred_t={idx}': x0_pred
-                    })
+                # if idx <= 10:
+                #     x0_pred = latents[0] - sample_scheduler.get_sigma(idx) * noise_pred
+                #     save_tensors(f'tensors/{encoded_params}', {
+                #         f'x0_pred_t={idx}': x0_pred
+                #     })
 
             x0 = latents
             if offload_model:

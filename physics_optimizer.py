@@ -87,9 +87,12 @@ class Optimizer:
         self.guide_scale = guide_scale
         self.encoded_params = encoded_params
 
-    def optimize(self, latents, timestep, timestep_idx, noise_pred):
-        losses = physics_invariants.compute_losses(noise_pred)
-        log_losses(self.encoded_params+'.txt', losses, timestep_idx) # debugging
+    def optimize(self, latents, timestep, timestep_idx, noise_pred, sigma):
+        # debugging
+        x0_pred = latents[0] - sigma * noise_pred
+        losses = physics_invariants.compute_losses(x0_pred)
+        log_losses(self.encoded_params+'.txt', losses, timestep_idx) 
+
         if timestep_idx not in self.diffusion_steps_to_optimize or \
            self.loss_name is None or \
            self.loss_name not in losses.keys():
@@ -126,7 +129,9 @@ class Optimizer:
                 noise_pred = noise_pred_uncond + self.guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
 
-                losses = physics_invariants.compute_losses(noise_pred)
+                x0_pred = latent - sigma * noise_pred
+
+                losses = physics_invariants.compute_losses(x0_pred)
                 loss = losses[self.loss_name]
 
                 loss.backward(retain_graph=False)
