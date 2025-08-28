@@ -1,7 +1,66 @@
 import gc
 import torch
+import torch.utils.checkpoint as checkpoint
+import types
 import physics_invariants
 from utils import log_losses
+
+
+class GradientCheckpointer:
+    """
+    Adds gradient checkpointing to models that don't have native support.
+    Ensures proper gradient flow.
+    """
+    def __init__(self, model):
+        self.model = model
+        self.original_forward = model.forward
+        self.is_active = False
+    
+    def enable(self):
+        """Enable gradient checkpointing by patching the forward method"""
+        if self.is_active:
+            return
+            
+        def checkpointed_forward(self_model, latent_model_input, t, **kwargs):
+            """Wrapped forward function with gradient checkpointing"""
+            # Get the first element of latent_model_input
+            latent = latent_model_input[0]
+            
+            def custom_forward(x, timestep):
+                # Create list format expected by original forward
+                latent_list = [x]
+                
+                # Call original forward
+                output = self.original_forward(latent_list, t=timestep, **kwargs)
+                
+                # Properly handle output format
+                if isinstance(output, (list, tuple)):
+                    result = output[0]
+                else:
+                    result = output
+                    
+                return result
+                
+            # Apply checkpointing with proper preserve_rng_state flag
+            return checkpoint.checkpoint(
+                custom_forward, 
+                latent,
+                t,
+                preserve_rng_state=True  # Important for consistent results
+            )
+            
+        # Replace the forward method
+        self.model.forward = types.MethodType(checkpointed_forward, self.model)
+        self.is_active = True
+        
+    def disable(self):
+        """Restore original forward method"""
+        if not self.is_active:
+            return
+            
+        # Restore original forward method
+        self.model.forward = self.original_forward
+        self.is_active = False
 
 class Optimizer:
     def __init__(self, 
@@ -38,9 +97,12 @@ class Optimizer:
         
         # should optimize if got here
 
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
-        gc.collect() 
+        # torch.cuda.synchronize()
+        # torch.cuda.empty_cache()
+        # gc.collect() 
+
+        checkpointer = GradientCheckpointer(self.model)
+        checkpointer.enable()
 
         self.model.eval()
         for param in self.model.parameters():
@@ -69,5 +131,7 @@ class Optimizer:
 
                 loss.backward(retain_graph=False)
                 optimizer.step()
+
+        checkpointer.disable()
 
         return [latent.detach()]
