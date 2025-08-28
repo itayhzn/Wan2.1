@@ -268,7 +268,7 @@ class WanT2V:
                 noise_pred = noise_pred_uncond + guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
 
-                latents = optimizer.optimize(latents, timestep, idx, noise_pred, sample_scheduler.get_sigma(idx))
+                latents = optimizer.optimize(latents, t, idx, noise_pred, sample_scheduler.get_sigma(idx))
 
                 temp_x0 = sample_scheduler.step(
                     noise_pred.unsqueeze(0),

@@ -87,24 +87,24 @@ class Optimizer:
         self.guide_scale = guide_scale
         self.encoded_params = encoded_params
 
-    def optimize(self, latents, timestep, timestep_idx, noise_pred, sigma):
+    def optimize(self, latents, t, t_idx, noise_pred, sigma):
         # debugging
+        if isinstance(latents, list):
+            print(f"0 - latents is a list, latents[0].shape: {latents[0].shape}")
+        if isinstance(latents, torch.Tensor):
+            print(f"0 - latents is a tensor, latents.shape: {latents.shape}")
         print(f"1 - noise_pred.shape: {noise_pred.shape}")
         x0_pred = latents[0] - sigma * noise_pred
         print(f"1 - x0_pred.shape: {x0_pred.shape}")
         losses = physics_invariants.compute_losses(x0_pred)
-        log_losses(self.encoded_params+'.txt', losses, timestep_idx) 
+        log_losses(self.encoded_params+'.txt', losses, t_idx)
 
-        if timestep_idx not in self.diffusion_steps_to_optimize or \
+        if t_idx not in self.diffusion_steps_to_optimize or \
            self.loss_name is None or \
            self.loss_name not in losses.keys():
             return latents
         
         # should optimize if got here
-
-        # torch.cuda.synchronize()
-        # torch.cuda.empty_cache()
-        # gc.collect() 
 
         checkpointer = GradientCheckpointer(self.model)
         checkpointer.enable()
@@ -114,6 +114,7 @@ class Optimizer:
             param.requires_grad_(False)
 
         latent = latents[0].detach().clone().requires_grad_(True)
+        print(f'1 - latent.shape: {latent.shape}')
         optimizer = torch.optim.Adam([latent], lr=self.lr)
 
         with torch.enable_grad():
@@ -122,6 +123,8 @@ class Optimizer:
                 # Compute loss and gradients
                 
                 latent_model_input = [latent]
+                timestep = [t]
+                timestep = torch.stack(timestep)
 
                 noise_pred_cond = self.model(
                     latent_model_input, t=timestep, **self.arg_c)[0]
