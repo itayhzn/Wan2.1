@@ -92,20 +92,20 @@ class PairedWanSelfAttention(nn.Module):
                     v=v2,
                     k_lens=seq_lens,
                     window_size=self.window_size)
-            elif self_attn_option == 3:
-                x2 = flash_attention(
-                    q=rope_apply(q2, grid_sizes, freqs),
-                    k=rope_apply(k2, grid_sizes, freqs),
-                    v=v2 * subject_masks + v1 * (1 - subject_masks),
-                    k_lens=seq_lens,
-                    window_size=self.window_size)
-            elif self_attn_option == 4:
-                x2 = flash_attention(
-                    q=rope_apply(q2 * subject_masks + q1 * (1 - subject_masks), grid_sizes, freqs),
-                    k=rope_apply(k2 * subject_masks + k1 * (1 - subject_masks), grid_sizes, freqs),
-                    v=v2,
-                    k_lens=seq_lens,
-                    window_size=self.window_size)
+            # elif self_attn_option == 3:
+            #     x2 = flash_attention(
+            #         q=rope_apply(q2, grid_sizes, freqs),
+            #         k=rope_apply(k2, grid_sizes, freqs),
+            #         v=v2 * subject_masks + v1 * (1 - subject_masks),
+            #         k_lens=seq_lens,
+            #         window_size=self.window_size)
+            # elif self_attn_option == 4:
+            #     x2 = flash_attention(
+            #         q=rope_apply(q2 * subject_masks + q1 * (1 - subject_masks), grid_sizes, freqs),
+            #         k=rope_apply(k2 * subject_masks + k1 * (1 - subject_masks), grid_sizes, freqs),
+            #         v=v2,
+            #         k_lens=seq_lens,
+            #         window_size=self.window_size)
             elif self_attn_option == 5:
                 x2 = flash_attention(
                     q=rope_apply(q2 * subject_masks + q1 * (1 - subject_masks), grid_sizes, freqs),
