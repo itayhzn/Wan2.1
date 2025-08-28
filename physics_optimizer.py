@@ -126,7 +126,7 @@ class Optimizer:
                 noise_pred = noise_pred_uncond + self.guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
 
-                losses = physics_invariants.compute_losses(latent, timestep, timestep_idx, noise_pred)
+                losses = physics_invariants.compute_losses(latent)
                 loss = losses[self.loss_name]
 
                 loss.backward(retain_graph=False)
