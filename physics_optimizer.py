@@ -1,3 +1,4 @@
+import gc
 import torch
 import physics_invariants
 from utils import log_losses
@@ -36,6 +37,10 @@ class Optimizer:
             return latents
         
         # should optimize if got here
+
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        gc.collect() 
 
         self.model.eval()
         for param in self.model.parameters():
