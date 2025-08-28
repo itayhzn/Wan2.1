@@ -265,6 +265,36 @@ def _parse_args():
         default='default',
         help="The name of the experiment, used to distinguish different runs."
     )
+    parser.add_argument(
+        "--loss_name",
+        type=str,
+        default=None,
+        help="The name of the loss function to use."
+    )
+    parser.add_argument(
+        "--optimization_iterations",
+        type=int,
+        default=1,
+        help="The number of optimization iterations to perform."
+    )
+    parser.add_argument(
+        "--optimization_lr",
+        type=float,
+        default=0.03,
+        help="The learning rate for optimization."
+    )
+    parser.add_argument(
+        "--optimization_start_step",
+        type=int,
+        default=50,
+        help="The starting step for optimization."
+    )
+    parser.add_argument(
+        "--optimization_end_step",
+        type=int,
+        default=50,
+        help="The ending step for optimization."
+    )
 
     args = parser.parse_args()
 
@@ -402,7 +432,12 @@ def generate(args):
             guide_scale=args.sample_guide_scale,
             seed=args.base_seed,
             offload_model=args.offload_model,
-            encoded_params=utils.encode_params(args.prompt, args.base_seed, args.experiment_name)
+            encoded_params=utils.encode_params(args),
+            loss_name=args.loss_name,
+            optimization_iterations=args.optimization_iterations,
+            optimization_lr=args.optimization_lr,
+            optimization_start_step=args.optimization_start_step,
+            optimization_end_step=args.optimization_end_step
         )
 
     elif "i2v" in args.task:
@@ -582,7 +617,7 @@ def generate(args):
         if args.save_file is None:
             dirname = "generated"
 
-            filename = utils.encode_params(args.prompt, args.base_seed, args.experiment_name)
+            filename = utils.encode_params(args)
 
             suffix = '.png' if "t2i" in args.task else '.mp4'
             args.save_file = f"{dirname}/{filename}" + suffix

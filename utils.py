@@ -8,31 +8,36 @@ from PIL import Image
 import cv2
 import uuid
 
-def encode_params(prompt, seed, task=None, size=None, ulysses_size=None, ring_size=None, experiment_name=None):
+def encode_params(args):
     def escape(s):
         return s.replace(" ", "_").replace("/", "_").replace(",", "_") \
                  .replace("'", "_").replace('"', "_")[:60]
     
     formatted_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    save_file = f"{formatted_time}_"
+    s = f"{formatted_time}_"
 
-    if experiment_name:
-        save_file += f"{experiment_name}_"
-    if task:
-        save_file += f"{task}_"
-    if size:
-        save_file += f"{size.replace('*', 'x')}_" if sys.platform == 'win32' else f"{size}_"
-    if ulysses_size:
-        save_file += f"{ulysses_size}_"
-    if ring_size:
-        save_file += f"{ring_size}_"
-    if prompt:
-        save_file += f"{escape(prompt)}_"
-    if seed:
-        save_file += f"{seed}_"
-    
-    return save_file
+    if args.experiment_name:
+        s += f"{args.experiment_name}_"
+    if args.prompt:
+        s += f"{escape(args.prompt)}_"
+    if args.base_seed:
+        s += f"{torch.seed}_"
+    if args.optimization_iterations:
+        s += f"it={args.optimization_iterations}_"
+    if args.optimization_lr:
+        s += f"lr={args.optimization_lr}_"
+    if args.optimization_start_step:
+        s += f"start={args.optimization_start_step}_"
+    if args.optimization_end_step:
+        s += f"end={args.optimization_end_step}_"
+    if args.loss_name:
+        s += f"loss={args.loss_name}_"
+
+    if s.endswith("_"):
+        s = s[:-1]
+
+    return s
 
 def save_tensors(save_tensors_dir, tensors_dict):
     r"""
@@ -50,3 +55,16 @@ def save_tensors(save_tensors_dir, tensors_dict):
         else:
             print(f'{name} is not a tensor, skipping save. Type: {type(tensor)}')
     print(f'======= Saved tensors to {save_tensors_dir}')
+
+def log_losses(filename, losses, step, dirname='logs'):
+    """
+    Log losses to console and file.
+    """
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    log_file = os.path.join(dirname, filename)
+    with open(log_file, 'a') as f:
+        f.write(f"Step {step}:\n")
+        for name, value in losses.items():
+            f.write(f" {name}: {value.item()}\n")

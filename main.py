@@ -105,7 +105,14 @@ if __name__ == "__main__":
 
     seeds = [ '11' ]
 
-    experiment_name = "physics-03"
+    experiment_name = "losses-01"
 
-    os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}"  --seeds {' '.join(seeds)} --experiment_name "{experiment_name}" """)
+    lr = 0.03
+    iterations = 1
+    start_step = 0
+    end_step = 15
+    loss_names = ['mass_1', 'mass_2', 'mass_3', 'mass_4', 'momentum_1', 'momentum_2', 'kinetic_energy_1', 'kinetic_energy_2']
+
+    for loss_name in loss_names:
+        os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}"  --seeds {' '.join(seeds)} --experiment_name "{experiment_name}" --optimization_lr {lr} --optimization_iterations {iterations} --optimization_start_step {start_step} --optimization_end_step {end_step} --loss_name {loss_name}""")
 

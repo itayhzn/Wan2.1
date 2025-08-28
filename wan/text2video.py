@@ -14,7 +14,8 @@ import torch.cuda.amp as amp
 import torch.distributed as dist
 from tqdm import tqdm
 
-from utils import save_tensors
+from physics_optimizer import Optimizer
+from utils import save_tensors, log_losses
 
 from .distributed.fsdp import shard_model
 from .modules.model import WanModel
@@ -27,6 +28,7 @@ from .utils.fm_solvers import (
 )
 from .utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 
+import physics_invariants
 
 class WanT2V:
 
@@ -124,7 +126,13 @@ class WanT2V:
                  n_prompt="",
                  seed=-1,
                  offload_model=True,
-                 encoded_params=None):
+                 encoded_params=None,
+                 loss_name=None,
+                 optimization_iterations=1,
+                 optimization_lr=0.03,
+                 optimization_start_step=50,
+                 optimization_end_step=50
+                 ):
         r"""
         Generates video frames from text prompt using diffusion process.
 
@@ -233,6 +241,17 @@ class WanT2V:
             arg_c = {'context': context, 'seq_len': seq_len}
             arg_null = {'context': context_null, 'seq_len': seq_len}
 
+            optimizer = Optimizer(
+                model=self.model,
+                arg_c=arg_c,
+                arg_null=arg_null,
+                guide_scale=guide_scale,
+                iterations=optimization_iterations,
+                lr=optimization_lr,
+                diffusion_steps_to_optimize=range(optimization_start_step, optimization_end_step),
+                loss_name=loss_name
+            )
+
             for idx, t in enumerate(tqdm(timesteps)):
                 latent_model_input = latents
                 timestep = [t]
@@ -247,6 +266,12 @@ class WanT2V:
 
                 noise_pred = noise_pred_uncond + guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
+
+                ############ DEBUGGING
+                log_losses(physics_invariants.compute_losses(latents[0]))
+                ############ DEBUGGING
+
+                latents = optimizer.optimize(latents, timestep, idx, noise_pred)
 
                 temp_x0 = sample_scheduler.step(
                     noise_pred.unsqueeze(0),
