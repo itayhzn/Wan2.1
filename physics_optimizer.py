@@ -87,13 +87,6 @@ class Optimizer:
         self.guide_scale = guide_scale
         self.encoded_params = encoded_params
 
-    def print_shapes(self, x, name, counter=0):
-        # debugging
-        if isinstance(x, list):
-            print(f"1{counter} - {name} is a list, {name}[0].shape: {x[0].shape}")
-        if isinstance(x, torch.Tensor):
-            print(f"1{counter} - {name} is a tensor, {name}.shape: {x.shape}")
-
     def optimize(self, latents, t, t_idx, noise_pred, sigma):
         # debugging
         x0_pred = latents[0] - sigma * noise_pred
@@ -115,7 +108,6 @@ class Optimizer:
             param.requires_grad_(False)
 
         latent = latents[0].detach().clone().requires_grad_(True)
-        self.print_shapes(latent, 'latent', 3)
         optimizer = torch.optim.Adam([latent], lr=self.lr)
 
         with torch.enable_grad():
@@ -124,26 +116,21 @@ class Optimizer:
                 # Compute loss and gradients
                 
                 latent_model_input = [latent]
-                self.print_shapes(latent_model_input, 'latent_model_input', 4)
                 timestep = [t]
                 timestep = torch.stack(timestep)
 
                 noise_pred_cond = self.model(
                     latent_model_input, t=timestep, **self.arg_c)
                 noise_pred_cond = noise_pred_cond[0] if isinstance(noise_pred_cond, (list, tuple)) else noise_pred_cond
-                self.print_shapes(noise_pred_cond, 'noise_pred_cond', 5)
-                
+
                 noise_pred_uncond = self.model(
                     latent_model_input, t=timestep, **self.arg_null)
                 noise_pred_uncond = noise_pred_uncond[0] if isinstance(noise_pred_uncond, (list, tuple)) else noise_pred_uncond
-                self.print_shapes(noise_pred_uncond, 'noise_pred_uncond', 6)
 
                 noise_pred = noise_pred_uncond + self.guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
 
-                self.print_shapes(noise_pred, 'noise_pred', 7)
                 x0_pred = latent - sigma * noise_pred
-                self.print_shapes(x0_pred, 'x0_pred', 8)
 
                 losses = physics_invariants.compute_losses(x0_pred)
                 loss = losses[self.loss_name]
