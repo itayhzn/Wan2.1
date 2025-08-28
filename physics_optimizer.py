@@ -96,10 +96,7 @@ class Optimizer:
 
     def optimize(self, latents, t, t_idx, noise_pred, sigma):
         # debugging
-        self.print_shapes(latents, 'latents', 0)
-        self.print_shapes(noise_pred, 'noise_pred', 1)
         x0_pred = latents[0] - sigma * noise_pred
-        self.print_shapes(x0_pred, 'x0_pred', 2)
         losses = physics_invariants.compute_losses(x0_pred)
         log_losses(self.encoded_params+'.txt', losses, t_idx)
 
@@ -132,10 +129,13 @@ class Optimizer:
                 timestep = torch.stack(timestep)
 
                 noise_pred_cond = self.model(
-                    latent_model_input, t=timestep, **self.arg_c)[0]
+                    latent_model_input, t=timestep, **self.arg_c)
+                noise_pred_cond = noise_pred_cond[0] if isinstance(noise_pred_cond, (list, tuple)) else noise_pred_cond
                 self.print_shapes(noise_pred_cond, 'noise_pred_cond', 5)
+                
                 noise_pred_uncond = self.model(
-                    latent_model_input, t=timestep, **self.arg_null)[0]
+                    latent_model_input, t=timestep, **self.arg_null)
+                noise_pred_uncond = noise_pred_uncond[0] if isinstance(noise_pred_uncond, (list, tuple)) else noise_pred_uncond
                 self.print_shapes(noise_pred_uncond, 'noise_pred_uncond', 6)
 
                 noise_pred = noise_pred_uncond + self.guide_scale * (
