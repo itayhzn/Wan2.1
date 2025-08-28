@@ -89,7 +89,9 @@ class Optimizer:
 
     def optimize(self, latents, timestep, timestep_idx, noise_pred, sigma):
         # debugging
+        print(f"1 - noise_pred.shape: {noise_pred.shape}")
         x0_pred = latents[0] - sigma * noise_pred
+        print(f"1 - x0_pred.shape: {x0_pred.shape}")
         losses = physics_invariants.compute_losses(x0_pred)
         log_losses(self.encoded_params+'.txt', losses, timestep_idx) 
 
@@ -129,7 +131,9 @@ class Optimizer:
                 noise_pred = noise_pred_uncond + self.guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
 
+                print(f"2 - noise_pred.shape: {noise_pred.shape}")
                 x0_pred = latent - sigma * noise_pred
+                print(f"2 - x0_pred.shape: {x0_pred.shape}")
 
                 losses = physics_invariants.compute_losses(x0_pred)
                 loss = losses[self.loss_name]
