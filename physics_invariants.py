@@ -24,7 +24,7 @@ def compute_foreground_mask(x0_pred, channel=0, tau=0.1):
 def compute_objects_masks(fg_mask, top_p=0.2, kappa=16.0, bg_logit=-2.0, min_samples=5, eps_scale=1.5):
     f, h, w = fg_mask.shape[0], fg_mask.shape[1], fg_mask.shape[2]
 
-    fg_mask = fg_mask.detach().cpu().numpy()
+    fg_mask = fg_mask.numpy()
     
     tt, yy, xx = np.meshgrid(np.arange(f), np.arange(h), np.arange(w), indexing='ij')
 

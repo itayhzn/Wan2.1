@@ -1,13 +1,15 @@
+from datetime import datetime
 import os
 import torch
 
 
 if __name__ == "__main__":
-    # redirect output to a file
-    # with open("output.txt", "w") as f:
+    # formatted_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # # redirect output to a file
+    # with open(f"jobs_out_error/{formatted_time}.out", "w") as f:
     #     os.dup2(f.fileno(), 1)
-    # # redirect error output to a file
-    # with open("error.txt", "w") as f:
+    # # # redirect error output to a file
+    # with open(f"jobs_out_error/{formatted_time}.err", "w") as f:
     #     os.dup2(f.fileno(), 2)
 
     prompts = [
@@ -114,8 +116,9 @@ if __name__ == "__main__":
     loss_names = ['mass_1', 'mass_2', 'mass_3', 'mass_4', 'momentum_1', 'momentum_2', 'kinetic_energy_1', 'kinetic_energy_2']
 
     for loss_name in loss_names:
+        print(f"\n=========================================================\n")
         status_code = os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --offload_model True --t5_cpu --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}"  --seeds {' '.join(seeds)} --experiment_name "{experiment_name}" --optimization_lr {lr} --optimization_iterations {iterations} --optimization_start_step {start_step} --optimization_end_step {end_step} --loss_name {loss_name}""")
-        
+
         if status_code != 0:
             print(f"Error occurred while processing loss: {loss_name}")
             break
