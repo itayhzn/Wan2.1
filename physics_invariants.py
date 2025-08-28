@@ -5,7 +5,6 @@ import numpy as np
 import os
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
-from torch_dbscan import dbscan
 
 def compute_foreground_mask(x0_pred, channel=0, tau=0.1):
     x0_pred = x0_pred[channel] # channel 0
