@@ -22,7 +22,24 @@ def compute_foreground_mask(x0_pred, channel=0, tau=0.1):
 
     return x0_pred.view(f, h, w)
 
-def compute_objects_masks(fg_mask, top_p=0.08, min_samples=10, eps_scale=1.5):
+def downsample_if_needed(fg_mask, top_p=0.1, max_mass=20000):
+    num_downsamples = 0
+    while True:
+        fg_mask_flat = fg_mask.view(-1)
+        thres = torch.quantile(fg_mask_flat, 1 - top_p)
+        sel_mask = (fg_mask_flat >= thres).to(torch.int32)
+        total_mass = sel_mask.sum().item()
+
+        if total_mass > max_mass:
+            fg_mask = F.avg_pool2d(fg_mask.unsqueeze(1), kernel_size=2, stride=2).squeeze(1)
+            print(f"Downsampled fg_mask to shape {fg_mask.shape} due to high mass {total_mass}")
+            num_downsamples += 1
+        else:
+            break
+
+    return fg_mask, num_downsamples
+
+def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5):
     f, h, w = fg_mask.shape[0], fg_mask.shape[1], fg_mask.shape[2]
     device = fg_mask.device
     dtype = fg_mask.dtype
@@ -158,16 +175,20 @@ def compute_losses_aux(masses, edge_mass, com_velocities):
 
     return losses
 
-def compute_losses(x0_pred):
+def compute(x0_pred):
     start_time = time.time()
-    output = compute_foreground_mask(x0_pred, tau=0.1)
-    output = compute_objects_masks(output)
+    fg_mask = compute_foreground_mask(x0_pred, tau=0.1)
+    fg_mask, num_downsamples = downsample_if_needed(fg_mask)
+    output = compute_objects_masks(fg_mask)
+    # return output
     masses, edge_mass, com_positions, com_velocities = compute_physical_properties(output)
 
     losses = compute_losses_aux(masses, edge_mass, com_velocities)
-    end_time = time.time()
+    losses['num_downsamples'] = num_downsamples
 
+    end_time = time.time()
     print(f"compute_losses took {end_time - start_time:.1f} seconds")
+
     return losses
 
 __all__ = ['compute_losses']
