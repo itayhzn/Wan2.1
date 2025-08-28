@@ -22,7 +22,7 @@ def encode_params(args):
     if args.prompt:
         s += f"{escape(args.prompt)}_"
     if args.base_seed:
-        s += f"{torch.seed}_"
+        s += f"{args.base_seed}_"
     if args.optimization_iterations:
         s += f"it={args.optimization_iterations}_"
     if args.optimization_lr:
