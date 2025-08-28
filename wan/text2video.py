@@ -249,7 +249,8 @@ class WanT2V:
                 iterations=optimization_iterations,
                 lr=optimization_lr,
                 diffusion_steps_to_optimize=range(optimization_start_step, optimization_end_step),
-                loss_name=loss_name
+                loss_name=loss_name,
+                encoded_params=encoded_params
             )
 
             for idx, t in enumerate(tqdm(timesteps)):
@@ -266,10 +267,6 @@ class WanT2V:
 
                 noise_pred = noise_pred_uncond + guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
-
-                ############ DEBUGGING
-                log_losses(physics_invariants.compute_losses(latents[0]))
-                ############ DEBUGGING
 
                 latents = optimizer.optimize(latents, timestep, idx, noise_pred)
 

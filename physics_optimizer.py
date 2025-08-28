@@ -13,7 +13,8 @@ class Optimizer:
                  arg_c=None,
                  arg_null=None,
                  guide_scale=None,
-                 loss_name=None):
+                 loss_name=None,
+                 encoded_params=None):
         self.iterations = iterations
         self.lr = lr
         self.diffusion_steps_to_optimize = diffusion_steps_to_optimize
@@ -24,10 +25,11 @@ class Optimizer:
         self.arg_c = arg_c
         self.arg_null = arg_null
         self.guide_scale = guide_scale
+        self.encoded_params = encoded_params
 
     def optimize(self, latents, timestep, timestep_idx, noise_pred):
         losses = physics_invariants.compute_losses(noise_pred)
-        log_losses(losses) # debugging
+        log_losses(self.encoded_params+'.txt', losses, timestep_idx) # debugging
         if timestep_idx not in self.diffusion_steps_to_optimize or \
            self.loss_name is None or \
            self.loss_name not in losses.keys():
