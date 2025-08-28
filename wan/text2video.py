@@ -115,6 +115,13 @@ class WanT2V:
 
         self.sample_neg_prompt = config.sample_neg_prompt
 
+    def print_shapes(self, x, name, counter=0):
+        # debugging
+        if isinstance(x, list):
+            print(f"0{counter} - {name} is a list, {name}[0].shape: {x[0].shape}")
+        if isinstance(x, torch.Tensor):
+            print(f"0{counter} - {name} is a tensor, {name}.shape: {x.shape}")
+
     def generate(self,
                  input_prompt,
                  size=(1280, 720),
@@ -259,14 +266,19 @@ class WanT2V:
 
                 timestep = torch.stack(timestep)
 
+                self.print_shapes(latent_model_input, 'latent_model_input', 0)
+
                 self.model.to(self.device)
                 noise_pred_cond = self.model(
                     latent_model_input, t=timestep, **arg_c)[0]
+                self.print_shapes(noise_pred_cond, 'noise_pred_cond', 1)
                 noise_pred_uncond = self.model(
                     latent_model_input, t=timestep, **arg_null)[0]
+                self.print_shapes(noise_pred_uncond, 'noise_pred_uncond', 2)
 
                 noise_pred = noise_pred_uncond + guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
+                self.print_shapes(noise_pred, 'noise_pred', 3)
 
                 latents = optimizer.optimize(latents, t, idx, noise_pred, sample_scheduler.get_sigma(idx))
 
