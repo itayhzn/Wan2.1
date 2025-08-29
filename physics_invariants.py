@@ -175,7 +175,7 @@ def compute_losses_aux(masses, edge_mass, com_velocities):
 
     return losses
 
-def compute(x0_pred):
+def compute_losses(x0_pred):
     start_time = time.time()
     fg_mask = compute_foreground_mask(x0_pred, tau=0.1)
     fg_mask, num_downsamples = downsample_if_needed(fg_mask)
