@@ -3,8 +3,6 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import os
-from sklearn.cluster import DBSCAN
-from sklearn.neighbors import NearestNeighbors
 
 def compute_foreground_mask(x0_pred, latent, channel=0, tau=0.1):
     x = x0_pred[channel] # channel 0
