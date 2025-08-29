@@ -233,7 +233,7 @@ class PairedWanT2VCrossAttention(PairedWanSelfAttention):
             elif cross_attn_option == 7:
                 x2 = flash_attention(q2 * subject_masks, k_edit, v_edit)
             elif cross_attn_option == 8:
-                q2 = self.norm_q(self.q(x2 * subject_masks.view(x2.shape))).view(b, -1, n, d)
+                q2 = self.norm_q(self.q(x2 * subject_masks.view(1, -1, 1))).view(b, -1, n, d)
                 x2 = flash_attention(q2, k_edit, v_edit)
             elif cross_attn_option == 9:
                 x2 = flash_attention(q2, k_edit, v_edit)
