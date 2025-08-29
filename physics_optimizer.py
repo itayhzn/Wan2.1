@@ -132,10 +132,7 @@ class Optimizer:
 
                 x0_pred = latent - sigma * noise_pred
 
-                grad = torch.autograd.grad(outputs=x0_pred, inputs=latent, retain_graph=True, allow_unused=True)[0]
-                assert grad is not None, "Error 1"
-
-                losses = physics_invariants.compute_losses(x0_pred)
+                losses = physics_invariants.compute_losses(x0_pred, latent)
                 loss = losses[self.loss_name]
 
                 loss.backward(retain_graph=False)
