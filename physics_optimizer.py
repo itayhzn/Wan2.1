@@ -94,8 +94,9 @@ class Optimizer:
         # log_losses(self.encoded_params+'.txt', losses, t_idx)
 
         if t_idx not in self.diffusion_steps_to_optimize or \
-           self.loss_name is None or \
-           self.loss_name not in losses.keys():
+           self.loss_name is None:
+        #     or \
+        #    self.loss_name not in losses.keys():
             return latents
         
         # should optimize if got here
