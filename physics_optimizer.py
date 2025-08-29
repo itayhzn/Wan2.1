@@ -89,9 +89,9 @@ class Optimizer:
 
     def optimize(self, latents, t, t_idx, noise_pred, sigma):
         # debugging
-        x0_pred = latents[0] - sigma * noise_pred
-        losses = physics_invariants.compute_losses(x0_pred)
-        log_losses(self.encoded_params+'.txt', losses, t_idx)
+        # x0_pred = latents[0] - sigma * noise_pred
+        # losses = physics_invariants.compute_losses(x0_pred)
+        # log_losses(self.encoded_params+'.txt', losses, t_idx)
 
         if t_idx not in self.diffusion_steps_to_optimize or \
            self.loss_name is None or \
@@ -132,9 +132,12 @@ class Optimizer:
 
                 x0_pred = latent - sigma * noise_pred
 
+                grad = torch.autograd.grad(outputs=x0_pred, inputs=latent, retain_graph=True, allow_unused=True)[0]
+                assert grad is not None, "Error 2.1"
+                
                 losses = physics_invariants.compute_losses(x0_pred, latent)
                 loss = losses[self.loss_name]
-
+            
                 loss.backward(retain_graph=False)
                 optimizer.step()
 
