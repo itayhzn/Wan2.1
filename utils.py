@@ -67,4 +67,7 @@ def log_losses(filename, losses, step, dirname='logs'):
     with open(log_file, 'a') as f:
         f.write(f"Step {step}:\n")
         for name, value in losses.items():
-            f.write(f" {name}: {value.item()}\n")
+            if isinstance(value, torch.Tensor):
+                f.write(f" {name}: {value.item()}\n")
+            else:
+                f.write(f" {name}: {value}\n")
