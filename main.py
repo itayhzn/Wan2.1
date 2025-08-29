@@ -32,11 +32,11 @@ if __name__ == "__main__":
     edit_prompts =  ["A cat."] * len(prompts) 
 
     # redirect output to a file
-    with open(f"jobs-out-err/{datetime_str}_{experiment_name}.out", "w") as f:
-        os.dup2(f.fileno(), 1)
-    # # redirect error output to a file
-    with open(f"jobs-out-err/{datetime_str}_{experiment_name}.err", "w") as f:
-        os.dup2(f.fileno(), 2)
+    # with open(f"jobs-out-err/{datetime_str}_{experiment_name}.out", "w") as f:
+    #     os.dup2(f.fileno(), 1)
+    # # # redirect error output to a file
+    # with open(f"jobs-out-err/{datetime_str}_{experiment_name}.err", "w") as f:
+    #     os.dup2(f.fileno(), 2)
 
     for cross_attn_option in [8,9,7]: #range(5):
         for timestep in [0,3,6]: # [0, 11, 2]: #range(0, 20, 2):
