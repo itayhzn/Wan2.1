@@ -28,11 +28,10 @@ def downsample_if_needed(fg_mask, top_p=0.1, max_mass=20000):
         fg_mask_flat = fg_mask.view(-1)
         thres = torch.quantile(fg_mask_flat, 1 - top_p)
         sel_mask = (fg_mask_flat >= thres).to(torch.int32)
-        total_mass = sel_mask.sum().item()
+        total_mass = sel_mask.sum()
 
         if total_mass > max_mass:
             fg_mask = F.avg_pool2d(fg_mask.unsqueeze(1), kernel_size=2, stride=2).squeeze(1)
-            print(f"Downsampled fg_mask to shape {fg_mask.shape} due to high mass {total_mass}")
             num_downsamples += 1
         else:
             break
@@ -58,8 +57,6 @@ def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5):
     # points in 3D space
     pts = torch.stack([xx, yy, tt], dim=1).to(device=device, dtype=dtype)
     wts = fg_mask_flat[sel_mask].to(device=device, dtype=dtype)
-
-    print(pts.shape)
 
     # step 2: auto-tune eps from kNN distances
     k = min(min_samples, max(pts.shape[0]-1, 1)) if len(pts) > min_samples else 1
@@ -178,12 +175,41 @@ def compute_losses_aux(masses, edge_mass, com_velocities):
 def compute_losses(x0_pred):
     start_time = time.time()
     fg_mask = compute_foreground_mask(x0_pred, tau=0.1)
+
+    grad = torch.autograd.grad(outputs=fg_mask, inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+    assert grad is not None, "Error 2"
+
     fg_mask, num_downsamples = downsample_if_needed(fg_mask)
+
+    grad = torch.autograd.grad(outputs=fg_mask, inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+    assert grad is not None, "Error 3"
+
+
     output = compute_objects_masks(fg_mask)
+
+    grad = torch.autograd.grad(outputs=output, inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+    assert grad is not None, "Error 4"
+
+
     # return output
     masses, edge_mass, com_positions, com_velocities = compute_physical_properties(output)
 
+    grad = torch.autograd.grad(outputs=masses, inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+    assert grad is not None, "Error 5.1"
+    grad = torch.autograd.grad(outputs=edge_mass, inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+    assert grad is not None, "Error 5.2"
+    grad = torch.autograd.grad(outputs=com_positions, inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+    assert grad is not None, "Error 5.3"
+    grad = torch.autograd.grad(outputs=com_velocities, inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+    assert grad is not None, "Error 5.4"
+
+
     losses = compute_losses_aux(masses, edge_mass, com_velocities)
+
+    for i, k in enumerate(losses.keys()):
+        grad = torch.autograd.grad(outputs=losses[k], inputs=x0_pred, retain_graph=True, allow_unused=True)[0]
+        assert grad is not None, f"Error 6.{i+1}: {k}"
+
     losses['num_downsamples'] = num_downsamples
 
     end_time = time.time()
