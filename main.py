@@ -19,7 +19,7 @@ def read_file(file_path):
 
 
 if __name__ == "__main__":
-    experiment_name = "combos-08"
+    experiment_name = "combos-09"
 
     datetime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     for cross_attn_option in [8,9,7]: #range(5):
         for timestep in [0,3,6]: # [0, 11, 2]: #range(0, 20, 2):
-            for self_attn_option in [5,0,1,3]: #range(13):
+            for self_attn_option in [13,14,15]: #range(13):
                 print(f"Running with timestep {timestep}, self_attn_option {self_attn_option}, cross_attn_option {cross_attn_option}")
                 os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}" --seeds {' '.join(seeds)} --paired_generation "True" --subject_prompts "{'" "'.join(subject_prompts)}" --edit_prompts "{'" "'.join(edit_prompts)}" --experiment_name "{experiment_name}" --timestep_for_edit {timestep} --self_attn_option {self_attn_option} --cross_attn_option {cross_attn_option} """)
 
