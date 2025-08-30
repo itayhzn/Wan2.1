@@ -123,6 +123,6 @@ if __name__ == "__main__":
         status_code = os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --offload_model True --t5_cpu --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}"  --seeds {' '.join(seeds)} --experiment_name "{experiment_name}" --optimization_lr {lr} --optimization_iterations {iterations} --optimization_start_step {start_step} --optimization_end_step {end_step} --loss_name {loss_name} --breakpoint_location {breakpoint_location}""")
 
         if status_code != 0:
-            print(f"Error occurred while processing loss: {loss_name}")
+            print(f"Error occurred while processing loss: {loss_name}, breakpoint_location: {breakpoint_location}")
             break
 
