@@ -46,6 +46,7 @@ class GradientCheckpointer:
                 custom_forward, 
                 latent,
                 t,
+                use_reentrant=False,  # Add this line
                 preserve_rng_state=True  # Important for consistent results
             )
             
