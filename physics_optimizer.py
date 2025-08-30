@@ -46,7 +46,6 @@ class GradientCheckpointer:
                 custom_forward, 
                 latent,
                 t,
-                use_reentrant=False,  # Add this line
                 preserve_rng_state=True  # Important for consistent results
             )
             
@@ -88,7 +87,7 @@ class Optimizer:
         self.guide_scale = guide_scale
         self.encoded_params = encoded_params
 
-    def optimize(self, latents, t, t_idx, noise_pred, sigma):
+    def optimize(self, latents, t, t_idx, noise_pred, sigma, breakpoint_location=-1):
         # debugging
         # x0_pred = latents[0] - sigma * noise_pred
         # losses = physics_invariants.compute_losses(x0_pred)
@@ -133,12 +132,12 @@ class Optimizer:
                     noise_pred_cond - noise_pred_uncond)
 
                 x0_pred = latent - sigma * noise_pred
-
-                grad = torch.autograd.grad(outputs=torch.mean(x0_pred), inputs=latent, retain_graph=True, allow_unused=True)[0]
-                assert grad is not None, "Error 2.1"
-                
-                losses = physics_invariants.compute_losses(x0_pred, latent)
-                loss = losses[self.loss_name]
+    
+                if breakpoint_location == 0:
+                    loss = torch.mean(x0_pred)
+                else:
+                    losses = physics_invariants.compute_losses(x0_pred, latent, breakpoint_location=breakpoint_location)
+                    loss = losses[self.loss_name]
             
                 loss.backward(retain_graph=False)
                 optimizer.step()

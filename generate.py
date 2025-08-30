@@ -295,6 +295,12 @@ def _parse_args():
         default=50,
         help="The ending step for optimization."
     )
+    parser.add_argument(
+        "--breakpoint_location",
+        type=int,
+        default=-1,
+        help="The location of the breakpoint."
+    )
 
     args = parser.parse_args()
 
@@ -437,7 +443,8 @@ def generate(args):
             optimization_iterations=args.optimization_iterations,
             optimization_lr=args.optimization_lr,
             optimization_start_step=args.optimization_start_step,
-            optimization_end_step=args.optimization_end_step
+            optimization_end_step=args.optimization_end_step,
+            breakpoint_location=args.breakpoint_location
         )
 
     elif "i2v" in args.task:

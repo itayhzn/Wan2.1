@@ -131,7 +131,8 @@ class WanT2V:
                  optimization_iterations=1,
                  optimization_lr=0.03,
                  optimization_start_step=50,
-                 optimization_end_step=50
+                 optimization_end_step=50,
+                 breakpoint_location=-1
                  ):
         r"""
         Generates video frames from text prompt using diffusion process.
@@ -268,7 +269,7 @@ class WanT2V:
                 noise_pred = noise_pred_uncond + guide_scale * (
                     noise_pred_cond - noise_pred_uncond)
 
-                latents = optimizer.optimize(latents, t, idx, noise_pred, sample_scheduler.get_sigma(idx))
+                latents = optimizer.optimize(latents, t, idx, noise_pred, sample_scheduler.get_sigma(idx), breakpoint_location=breakpoint_location)
 
                 temp_x0 = sample_scheduler.step(
                     noise_pred.unsqueeze(0),

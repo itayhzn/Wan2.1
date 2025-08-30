@@ -9,23 +9,14 @@ def compute_foreground_mask(x0_pred, latent, channel=0, tau=0.1):
     f, h, w = x0_pred.shape[0], x0_pred.shape[1], x0_pred.shape[2]
     x = x.view(f, h*w)
 
-    grad = torch.autograd.grad(outputs=torch.mean(x), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 2.1"
-
     # step 1: normalize tensor to [0, 1] 
     min_val = x.min(axis=1).values.unsqueeze(-1)
     max_val = x.max(axis=1).values.unsqueeze(-1)
     x = (x - min_val) / (max_val - min_val)
 
-    grad = torch.autograd.grad(outputs=torch.mean(x), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 2.2"
-
     # step 2: take foreground as relu(abs(x - median) - tau)
     med_val = x.median(axis=1).values.unsqueeze(-1)
     x = F.relu((x - med_val).abs() - tau)
-
-    grad = torch.autograd.grad(outputs=torch.mean(x), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 2.3"
 
     return x.view(f, h, w)
 
@@ -45,7 +36,7 @@ def downsample_if_needed(fg_mask, top_p=0.1, max_mass=20000):
 
     return fg_mask, num_downsamples
 
-def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5):
+def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5, breakpoint_location=-1):
     f, h, w = fg_mask.shape[0], fg_mask.shape[1], fg_mask.shape[2]
     device = fg_mask.device
     dtype = fg_mask.dtype
@@ -53,7 +44,7 @@ def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5):
     # step 1: select top-p foreground pixels
     fg_mask_flat = fg_mask.view(-1)
     thres = torch.quantile(fg_mask_flat, 1 - top_p)
-    sel_mask = (fg_mask_flat >= thres).to(torch.int32)
+    sel_mask = (fg_mask_flat >= thres).to(dtype=dtype)
     idx = torch.nonzero(sel_mask, as_tuple=False).squeeze(1)
 
     # unravel indices
@@ -65,10 +56,16 @@ def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5):
     pts = torch.stack([xx, yy, tt], dim=1).to(device=device, dtype=dtype)
     wts = fg_mask_flat[sel_mask].to(device=device, dtype=dtype)
 
+    if breakpoint_location == 3:
+        return torch.mean(pts) + torch.mean(wts)
+
     # step 2: auto-tune eps from kNN distances
     k = min(min_samples, max(pts.shape[0]-1, 1)) if len(pts) > min_samples else 1
     D = torch.cdist(pts, pts)
-    
+
+    if breakpoint_location == 4:
+        return torch.mean(D)
+
     if k >= 1:
         knn_d, _ = torch.topk(D, k=k+1, largest=False)
         base = torch.median(knn_d[:, -1])
@@ -81,7 +78,10 @@ def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5):
     neighbor_counts = torch.sum(neighborhoods, dim=1)
     core_points = neighbor_counts >= min_samples
 
-    labels = torch.full((pts.shape[0],), -1, dtype=torch.int32, device=device)
+    if breakpoint_location == 5:
+        return torch.mean(core_points.float())
+
+    labels = torch.full((pts.shape[0],), -1, dtype=dtype, device=device)
     cluster_id = 0
     for i in range(pts.shape[0]):
         if core_points[i] and labels[i] == -1:
@@ -98,7 +98,7 @@ def compute_objects_masks(fg_mask, top_p=0.1, min_samples=10, eps_scale=1.5):
             cluster_id += 1
 
     # step 4: create an f**w image
-    mask = torch.full((f, h, w), -1, dtype=torch.int32, device=device)
+    mask = torch.full((f, h, w), -1, dtype=dtype, device=device)
         
     valid = labels >= 0
     if valid.any():
@@ -179,43 +179,36 @@ def compute_losses_aux(masses, edge_mass, com_velocities):
 
     return losses
 
-def compute_losses(x0_pred, latent):
+def compute_losses(x0_pred, latent, breakpoint_location=-1):
     start_time = time.time()
     fg_mask = compute_foreground_mask(x0_pred, latent, tau=0.1)
 
-    grad = torch.autograd.grad(outputs=torch.mean(fg_mask), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 2"
+    if breakpoint_location == 1:
+        return torch.mean(fg_mask)
 
     fg_mask, num_downsamples = downsample_if_needed(fg_mask)
 
-    grad = torch.autograd.grad(outputs=torch.mean(fg_mask), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 3"
+    if breakpoint_location == 2:
+        return torch.mean(fg_mask)
 
+    output = compute_objects_masks(fg_mask, breakpoint_location=breakpoint_location)
 
-    output = compute_objects_masks(fg_mask)
+    if breakpoint_location == 6:
+        return torch.mean(output.float())
 
-    grad = torch.autograd.grad(outputs=torch.mean(output), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 4"
-
-
-    # return output
+     # return output
     masses, edge_mass, com_positions, com_velocities = compute_physical_properties(output)
 
-    grad = torch.autograd.grad(outputs=torch.mean(masses), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 5.1"
-    grad = torch.autograd.grad(outputs=torch.mean(edge_mass), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 5.2"
-    grad = torch.autograd.grad(outputs=torch.mean(com_positions), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 5.3"
-    grad = torch.autograd.grad(outputs=torch.mean(com_velocities), inputs=latent, retain_graph=True, allow_unused=True)[0]
-    assert grad is not None, "Error 5.4"
-
+    if breakpoint_location == 7:
+        return torch.mean(masses)
+    if breakpoint_location == 8:
+        return torch.mean(edge_mass)
+    if breakpoint_location == 9:
+        return torch.mean(com_positions)
+    if breakpoint_location == 10:
+        return torch.mean(com_velocities)
 
     losses = compute_losses_aux(masses, edge_mass, com_velocities)
-
-    for i, k in enumerate(losses.keys()):
-        grad = torch.autograd.grad(outputs=losses[k], inputs=latent, retain_graph=True, allow_unused=True)[0]
-        assert grad is not None, f"Error 6.{i+1}: {k}"
 
     losses['num_downsamples'] = num_downsamples
 
