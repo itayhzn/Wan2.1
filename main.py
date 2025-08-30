@@ -39,7 +39,7 @@ def main():
 
     for cross_attn_option in [8,9,7]: #range(5):
         for timestep in [0,3,6]: # [0, 11, 2]: #range(0, 20, 2):
-            for self_attn_option in [13,14,15]: #range(13):
+            for self_attn_option in [106,112,113,114,115,116,117]: #range(13):
                 print(f"Running with timestep {timestep}, self_attn_option {self_attn_option}, cross_attn_option {cross_attn_option}")
                 
                 status_code = os.system(f"""python generate.py --task t2v-1.3B --size 832*480 --ckpt_dir ./Wan2.1-T2V-1.3B --prompts "{'" "'.join(prompts)}" --seeds {' '.join(seeds)} --paired_generation "True" --subject_prompts "{'" "'.join(subject_prompts)}" --edit_prompts "{'" "'.join(edit_prompts)}" --experiment_name "{experiment_name}" --timestep_for_edit {timestep} --self_attn_option {self_attn_option} --cross_attn_option {cross_attn_option} """)

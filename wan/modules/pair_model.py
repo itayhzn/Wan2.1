@@ -59,14 +59,6 @@ class PairedWanSelfAttention(nn.Module):
         b, s, n, d = *x1.shape[:2], self.num_heads, self.head_dim
 
         q1, k1, v1 = self.qkv_fn(x1) # [B, F*H*W, n, d]
-        
-        x1 = flash_attention(
-            q=rope_apply(q1, grid_sizes, freqs),
-            k=rope_apply(k1, grid_sizes, freqs),
-            v=v1,
-            k_lens=seq_lens,
-            window_size=self.window_size) # [B, F*H*W, n, d]
-
         q2, k2, v2 = self.qkv_fn(x2) # [B, F*H*W, n, d]
         q1_orig, k1_orig, v1_orig = self.qkv_fn(original_x1)
 
@@ -113,14 +105,14 @@ class PairedWanSelfAttention(nn.Module):
                     v=v2 * subject_masks + v1 * (1 - subject_masks),
                     k_lens=seq_lens,
                     window_size=self.window_size)
-            # elif self_attn_option == 6:
-            #     x2 = flash_attention(
-            #         q=rope_apply(q2, grid_sizes, freqs),
-            #         k=rope_apply(k2, grid_sizes, freqs),
-            #         v=v2,
-            #         k_lens=seq_lens,
-            #         window_size=self.window_size)
-            #     x2 = x2 * subject_masks + x1 * (1 - subject_masks)
+            elif self_attn_option == 106:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+                x2 = x2 * subject_masks + x1 * (1 - subject_masks)
             # elif self_attn_option == 7:
             #     x2 = flash_attention(
             #         q=rope_apply(q2 * subject_masks + q1_orig * (1 - subject_masks), grid_sizes, freqs),
@@ -156,15 +148,15 @@ class PairedWanSelfAttention(nn.Module):
             #         v=v2 * subject_masks + v1_orig * (1 - subject_masks),
             #         k_lens=seq_lens,
             #         window_size=self.window_size)
-            # elif self_attn_option == 12:
-            #     x2 = flash_attention(
-            #         q=rope_apply(q2, grid_sizes, freqs),
-            #         k=rope_apply(k2, grid_sizes, freqs),
-            #         v=v2,
-            #         k_lens=seq_lens,
-            #         window_size=self.window_size)
-            #     x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)          
-            elif self_attn_option == 13:
+            elif self_attn_option == 112:
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+                x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)          
+            elif self_attn_option == 113:
                 q = self.norm_q(self.q(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
                 k = self.norm_k(self.k(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
                 v = self.v(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1))).view(b, -1, n, d)
@@ -174,7 +166,7 @@ class PairedWanSelfAttention(nn.Module):
                     v=v,
                     k_lens=seq_lens,
                     window_size=self.window_size)
-            elif self_attn_option == 14:
+            elif self_attn_option == 114:
                 v = self.v(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1))).view(b, -1, n, d)
                 x2 = flash_attention(
                     q=rope_apply(q2, grid_sizes, freqs),
@@ -182,7 +174,7 @@ class PairedWanSelfAttention(nn.Module):
                     v=v,
                     k_lens=seq_lens,
                     window_size=self.window_size)
-            elif self_attn_option == 15:
+            elif self_attn_option == 115:
                 q = self.norm_q(self.q(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
                 k = self.norm_k(self.k(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
                 x2 = flash_attention(
@@ -191,8 +183,31 @@ class PairedWanSelfAttention(nn.Module):
                     v=v2,
                     k_lens=seq_lens,
                     window_size=self.window_size)
+            elif self_attn_option == 116:
+                q = self.norm_q(self.q(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
+                x2 = flash_attention(
+                    q=rope_apply(q, grid_sizes, freqs),
+                    k=rope_apply(k2, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
+            elif self_attn_option == 117:
+                k = self.norm_k(self.k(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
+                x2 = flash_attention(
+                    q=rope_apply(q2, grid_sizes, freqs),
+                    k=rope_apply(k, grid_sizes, freqs),
+                    v=v2,
+                    k_lens=seq_lens,
+                    window_size=self.window_size)
         else:
             x2 = x1
+
+        x1 = flash_attention(
+            q=rope_apply(q1, grid_sizes, freqs),
+            k=rope_apply(k1, grid_sizes, freqs),
+            v=v1,
+            k_lens=seq_lens,
+            window_size=self.window_size) # [B, F*H*W, n, d]
 
         # output
         x1 = x1.flatten(2)
