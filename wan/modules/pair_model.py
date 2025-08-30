@@ -105,14 +105,14 @@ class PairedWanSelfAttention(nn.Module):
                     v=v2 * subject_masks + v1 * (1 - subject_masks),
                     k_lens=seq_lens,
                     window_size=self.window_size)
-            elif self_attn_option == 106:
-                x2 = flash_attention(
-                    q=rope_apply(q2, grid_sizes, freqs),
-                    k=rope_apply(k2, grid_sizes, freqs),
-                    v=v2,
-                    k_lens=seq_lens,
-                    window_size=self.window_size)
-                x2 = x2 * subject_masks + x1 * (1 - subject_masks)
+            # elif self_attn_option == 6:
+            #     x2 = flash_attention(
+            #         q=rope_apply(q2, grid_sizes, freqs),
+            #         k=rope_apply(k2, grid_sizes, freqs),
+            #         v=v2,
+            #         k_lens=seq_lens,
+            #         window_size=self.window_size)
+            #     x2 = x2 * subject_masks + x1 * (1 - subject_masks)
             # elif self_attn_option == 7:
             #     x2 = flash_attention(
             #         q=rope_apply(q2 * subject_masks + q1_orig * (1 - subject_masks), grid_sizes, freqs),
@@ -148,14 +148,14 @@ class PairedWanSelfAttention(nn.Module):
             #         v=v2 * subject_masks + v1_orig * (1 - subject_masks),
             #         k_lens=seq_lens,
             #         window_size=self.window_size)
-            elif self_attn_option == 112:
-                x2 = flash_attention(
-                    q=rope_apply(q2, grid_sizes, freqs),
-                    k=rope_apply(k2, grid_sizes, freqs),
-                    v=v2,
-                    k_lens=seq_lens,
-                    window_size=self.window_size)
-                x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)          
+            # elif self_attn_option == 112:
+            #     x2 = flash_attention(
+            #         q=rope_apply(q2, grid_sizes, freqs),
+            #         k=rope_apply(k2, grid_sizes, freqs),
+            #         v=v2,
+            #         k_lens=seq_lens,
+            #         window_size=self.window_size)
+            #     x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)          
             elif self_attn_option == 113:
                 q = self.norm_q(self.q(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
                 k = self.norm_k(self.k(x2 * subject_masks.view(1,-1,1) + x1.view(x2.shape) * (1 - subject_masks.view(1,-1,1)))).view(b, -1, n, d)
