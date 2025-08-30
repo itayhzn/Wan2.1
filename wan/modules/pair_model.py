@@ -165,6 +165,10 @@ class PairedWanSelfAttention(nn.Module):
             #         window_size=self.window_size)
             #     x2 = x2 * subject_masks + original_x1.view(x2.shape) * (1 - subject_masks)          
             elif self_attn_option == 13:
+                print(f"x1.shape: {x1.shape}")
+                print(f"x2.shape: {x2.shape}")
+                print(f"subject_masks.shape: {subject_masks.shape}")
+
                 q = self.norm_q(self.q(x2 * subject_masks.view(1,-1,1,1) + x1 * (1 - subject_masks.view(1,-1,1,1)))).view(b, -1, n, d)
                 k = self.norm_k(self.k(x2 * subject_masks.view(1,-1,1,1) + x1 * (1 - subject_masks.view(1,-1,1,1)))).view(b, -1, n, d)
                 v = self.v(x2 * subject_masks.view(1,-1,1,1) + x1 * (1 - subject_masks.view(1,-1,1,1))).view(b, -1, n, d)
