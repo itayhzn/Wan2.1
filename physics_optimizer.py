@@ -133,7 +133,7 @@ class Optimizer:
 
                 x0_pred = latent - sigma * noise_pred
 
-                grad = torch.autograd.grad(outputs=x0_pred, inputs=latent, retain_graph=True, allow_unused=True)[0]
+                grad = torch.autograd.grad(outputs=torch.mean(x0_pred), inputs=latent, retain_graph=True, allow_unused=True)[0]
                 assert grad is not None, "Error 2.1"
                 
                 losses = physics_invariants.compute_losses(x0_pred, latent)

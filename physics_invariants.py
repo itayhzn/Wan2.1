@@ -9,7 +9,7 @@ def compute_foreground_mask(x0_pred, latent, channel=0, tau=0.1):
     f, h, w = x0_pred.shape[0], x0_pred.shape[1], x0_pred.shape[2]
     x = x.view(f, h*w)
 
-    grad = torch.autograd.grad(outputs=x, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(x), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 2.1"
 
     # step 1: normalize tensor to [0, 1] 
@@ -17,14 +17,14 @@ def compute_foreground_mask(x0_pred, latent, channel=0, tau=0.1):
     max_val = x.max(axis=1).values.unsqueeze(-1)
     x = (x - min_val) / (max_val - min_val)
 
-    grad = torch.autograd.grad(outputs=x, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(x), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 2.2"
 
     # step 2: take foreground as relu(abs(x - median) - tau)
     med_val = x.median(axis=1).values.unsqueeze(-1)
     x = F.relu((x - med_val).abs() - tau)
 
-    grad = torch.autograd.grad(outputs=x, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(x), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 2.3"
 
     return x.view(f, h, w)
@@ -183,31 +183,31 @@ def compute_losses(x0_pred, latent):
     start_time = time.time()
     fg_mask = compute_foreground_mask(x0_pred, latent, tau=0.1)
 
-    grad = torch.autograd.grad(outputs=fg_mask, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(fg_mask), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 2"
 
     fg_mask, num_downsamples = downsample_if_needed(fg_mask)
 
-    grad = torch.autograd.grad(outputs=fg_mask, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(fg_mask), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 3"
 
 
     output = compute_objects_masks(fg_mask)
 
-    grad = torch.autograd.grad(outputs=output, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(output), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 4"
 
 
     # return output
     masses, edge_mass, com_positions, com_velocities = compute_physical_properties(output)
 
-    grad = torch.autograd.grad(outputs=masses, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(masses), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 5.1"
-    grad = torch.autograd.grad(outputs=edge_mass, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(edge_mass), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 5.2"
-    grad = torch.autograd.grad(outputs=com_positions, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(com_positions), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 5.3"
-    grad = torch.autograd.grad(outputs=com_velocities, inputs=latent, retain_graph=True, allow_unused=True)[0]
+    grad = torch.autograd.grad(outputs=torch.mean(com_velocities), inputs=latent, retain_graph=True, allow_unused=True)[0]
     assert grad is not None, "Error 5.4"
 
 
